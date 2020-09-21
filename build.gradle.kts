@@ -1,5 +1,6 @@
 plugins {
     `kotlin-dsl`
+    `java-gradle-plugin`
 }
 
 buildscript {
@@ -11,6 +12,15 @@ buildscript {
 repositories {
     jcenter()
     gradlePluginPortal()
+}
+
+gradlePlugin {
+    plugins {
+        create("apiGeneratorPlugin") {
+            id = "com.utopia-rise.api-generator"
+            implementationClass = "godot.gradle.ApiGeneratorPlugin"
+        }
+    }
 }
 
 dependencies {
