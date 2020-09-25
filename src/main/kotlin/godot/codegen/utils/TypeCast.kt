@@ -182,4 +182,11 @@ fun String.defaultValue(): String = when (this) {
     else -> throw Exception("$this is not a primitive type.")
 }
 
+val String.jvmVariantTypeValue: String
+    get() = when (this) {
+        "Unit" -> "NIL"
+        "Boolean" -> "BOOL"
+        else -> this.toUpperCase()
+    }
+
 private class TypeException(override val message: String) : Exception()

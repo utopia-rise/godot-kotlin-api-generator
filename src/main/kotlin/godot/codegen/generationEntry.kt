@@ -8,8 +8,10 @@ import godot.codegen.utils.getPackage
 import java.io.File
 
 lateinit var tree: Graph<Class>
+var isNative: Boolean = false
 
-infix fun File.generateApiFrom(jsonSource: File) {
+fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
+    isNative = isNat
     val classes: List<Class> = ObjectMapper().readValue(jsonSource, object : TypeReference<ArrayList<Class>>() {})
 
     tree = classes.buildTree()

@@ -33,8 +33,6 @@ open class Method @JsonCreator constructor(
     var isGetterOrSetter: Boolean = false
 
     fun generate(clazz: Class, icalls: MutableSet<ICall>): FunSpec {
-        // Uncomment to disable method implementation generation
-        //if (isGetterOrSetter) return null
         val modifiers = mutableListOf<KModifier>()
 
         if (!clazz.isSingleton) {
@@ -72,45 +70,98 @@ open class Method @JsonCreator constructor(
             )
         }
 
+        generatedFunBuilder.generateCodeBlock(clazz, callArgumentsAsString, icalls, shouldReturn)
+
+        return generatedFunBuilder.build()
+    }
+
+    private fun FunSpec.Builder.generateCodeBlock(clazz: Class,
+                                                  callArgumentsAsString: String,
+                                                  icalls: MutableSet<ICall>? = null,
+                                                  shouldReturn: Boolean
+    ) {
         if (!isVirtual) {
-            generatedFunBuilder.addStatement("val mb = %M(\"${clazz.oldName}\",\"${oldName}\")", MemberName("godot.internal.utils", "getMethodBind"))
-            val constructedICall = constructICall(callArgumentsAsString, icalls)
-            generatedFunBuilder.addStatement(
-                "%L%L%M%L%L",
-                if (shouldReturn) "return " else "",
-                when {
-                    returnType == "enum.Error" -> {
-                        "${returnType.removeEnumPrefix()}.byValue( "
+            if (isNative) {
+                checkNotNull(icalls)
+                addStatement("val mb = %M(\"${clazz.oldName}\",\"${oldName}\")", MemberName("godot.internal.utils", "getMethodBind"))
+                val constructedICall = constructICall(callArgumentsAsString, icalls)
+                addStatement(
+                        "%L%L%M%L%L",
+                        if (shouldReturn) "return " else "",
+                        when {
+                            returnType == "enum.Error" -> {
+                                "${returnType.removeEnumPrefix()}.byValue( "
+                            }
+                            returnType.isEnum() -> {
+                                "${returnType.removeEnumPrefix()}.from( "
+                            }
+                            hasVarargs && returnType != "Variant" && returnType != "Unit" -> {
+                                "$returnType from "
+                            }
+                            else -> {
+                                ""
+                            }
+                        },
+                        MemberName("godot.icalls", constructedICall.first),
+                        constructedICall.second,
+                        when {
+                            returnType == "enum.Error" -> ".toUInt())"
+                            returnType.isEnum() -> ")"
+                            else -> ""
+                        }
+                )
+            } else {
+                val ktVariantClassName = ClassName("godot.core", "KtVariant")
+                val transferContextClassName = ClassName("godot.core", "TransferContext")
+                if (arguments.isNotEmpty() || shouldReturn) {
+                    addStatement(
+                            "val refresh = %T.writeArguments($callArgumentsAsString)",
+                            transferContextClassName,
+                            *arguments.map { ktVariantClassName }.toTypedArray()
+                    )
+                    val returnTypeCase = if (returnType.isEnum()) "Long" else returnType
+                    addStatement(
+                            "%T.callMethod(rawPtr, \"${clazz.oldName}\", \"$oldName\", " +
+                                    "%T.Type.${returnTypeCase.jvmVariantTypeValue}, refresh)",
+                            transferContextClassName,
+                            ClassName("godot.core", "KtVariant")
+                    )
+                    if (shouldReturn) {
+                        if (returnType.isEnum()) {
+                            addStatement(
+                                    "return ${returnType.removeEnumPrefix()}.from(%T.readReturnValue().asLong())",
+                                    transferContextClassName
+                            )
+                        } else {
+                            addStatement(
+                                    "return %T.readReturnValue().as%L()",
+                                    transferContextClassName,
+                                    returnType
+                            )
+                        }
+                    } else {
+                        addStatement(
+                                "%T.readReturnValue()",
+                                transferContextClassName
+                        )
                     }
-                    returnType.isEnum() -> {
-                        "${returnType.removeEnumPrefix()}.from( "
-                    }
-                    hasVarargs && returnType != "Variant" && returnType != "Unit" -> {
-                        "$returnType from "
-                    }
-                    else -> {
-                        ""
-                    }
-                },
-                MemberName("godot.icalls", constructedICall.first),
-                constructedICall.second,
-                when {
-                    returnType == "enum.Error" -> ".toUInt())"
-                    returnType.isEnum() -> ")"
-                    else -> ""
+                } else {
+                    addStatement(
+                            "%T.callMethod(rawPtr, \"${clazz.oldName}\", \"$oldName\", TODO(), false)",
+                            transferContextClassName
+                    )
                 }
-            )
+            }
         } else {
             if (shouldReturn) {
-                generatedFunBuilder.addStatement(
-                    "%L %T(%S)",
-                    "throw",
-                    NotImplementedError::class,
-                    "$oldName is not implemented for ${clazz.newName}"
+                addStatement(
+                        "%L %T(%S)",
+                        "throw",
+                        NotImplementedError::class,
+                        "$oldName is not implemented for ${clazz.newName}"
                 )
             }
         }
-        return generatedFunBuilder.build()
     }
 
     private fun buildCallArgumentsString(cl: Class, generatedFunBuilder: FunSpec.Builder): String {
@@ -119,10 +170,19 @@ open class Method @JsonCreator constructor(
                 val index = it.index
                 val argument = it.value
 
-                if (index != 0 || !hasVarargs) append(", ")
+                val shouldAddComa = if (isNative) index != 0 || !hasVarargs else index != 0
+
+                if (shouldAddComa) append(", ")
 
                 val sanitisedName = tree.getSanitisedArgumentName(this@Method, index, cl)
-                append(sanitisedName)
+                if (isNative) {
+                    append(sanitisedName)
+                    if (argument.type.isEnum()) append(".id")
+                } else {
+                    append("%T($sanitisedName")
+                    if (argument.type.isEnum()) append(".id")
+                    append(")")
+                }
 
                 if (argument.type.isEnum()) append(".id")
 

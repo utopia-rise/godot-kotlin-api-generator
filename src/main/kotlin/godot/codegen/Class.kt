@@ -56,6 +56,8 @@ class Class @JsonCreator constructor(
         val classTypeBuilder = createTypeBuilder(className)
 
         if (newName == "Object") {
+            if (!isNative) classTypeBuilder.superclass(ClassName("godot.core", "KtObject"))
+
             generatePointerVariable(classTypeBuilder)
             generateInitAndDestroy(classTypeBuilder)
             generateSignalExtensions(classTypeBuilder)
@@ -219,52 +221,64 @@ class Class @JsonCreator constructor(
     }
 
     private fun generateConstructors(typeBuilder: TypeSpec.Builder) {
-        if (isSingleton) {
-            typeBuilder.addInitializerBlock(
-                CodeBlock.of("""
+        if (isNative) {
+            if (isSingleton) {
+                typeBuilder.addInitializerBlock(
+                        CodeBlock.of("""
                             |%M {
                             |    val ptr = %M(%T.gdnative.godot_global_get_singleton).%M("$singletonName".%M.ptr)
                             |    %M(ptr) { "No instance found for singleton $singletonName" }
                             |    this@$newName.ptr = ptr
                             |}
                             |""".trimMargin(),
-                    MemberName("godot.internal.utils", "godotScoped"),
-                    MemberName("godot.internal.type", "nullSafe"),
-                    ClassName("godot.core", "Godot"),
-                    MemberName("kotlinx.cinterop", "invoke"),
-                    MemberName("kotlinx.cinterop", "cstr"),
-                    MemberName("kotlin", "requireNotNull")
+                                MemberName("godot.internal.utils", "godotScoped"),
+                                MemberName("godot.internal.type", "nullSafe"),
+                                ClassName("godot.core", "Godot"),
+                                MemberName("kotlinx.cinterop", "invoke"),
+                                MemberName("kotlinx.cinterop", "cstr"),
+                                MemberName("kotlin", "requireNotNull")
+                        )
                 )
-            )
-        }
-        else {
-
-            val noArgConstructor = if (!isInstanciable) {
-                FunSpec.constructorBuilder()
-                    .addModifiers(KModifier.INTERNAL)
-                    .callThisConstructor("null")
             } else {
-                FunSpec.constructorBuilder()
-                    .callThisConstructor("null")
-                    .addStatement(
-                        """if (%M()) {
+
+                val noArgConstructor = if (!isInstanciable) {
+                    FunSpec.constructorBuilder()
+                            .addModifiers(KModifier.INTERNAL)
+                            .callThisConstructor("null")
+                } else {
+                    FunSpec.constructorBuilder()
+                            .callThisConstructor("null")
+                            .addStatement(
+                                    """if (%M()) {
                    |    this.ptr = %M("$newName", "$oldName")
                    |}
                    |""".trimMargin(),
-                        MemberName(ClassName("godot.core", "Godot"), "shouldInitPtr"),
-                        MemberName("godot.internal.utils", "getConstructor")
-                    )
+                                    MemberName(ClassName("godot.core", "Godot"), "shouldInitPtr"),
+                                    MemberName("godot.internal.utils", "getConstructor")
+                            )
+                }
+
+                typeBuilder.addFunction(noArgConstructor.build())
+
+                typeBuilder.primaryConstructor(
+                        FunSpec.constructorBuilder()
+                                .addParameter(ParameterSpec("_ignore", ANY.copy(nullable = true)))
+                                .callSuperConstructor()
+                                .addModifiers(KModifier.INTERNAL)
+                                .build()
+                ).addSuperclassConstructorParameter("_ignore")
             }
-
-            typeBuilder.addFunction(noArgConstructor.build())
-
-            typeBuilder.primaryConstructor(
-                FunSpec.constructorBuilder()
-                    .addParameter(ParameterSpec("_ignore", ANY.copy(nullable = true)))
-                    .callSuperConstructor()
-                    .addModifiers(KModifier.INTERNAL)
-                    .build()
-            ).addSuperclassConstructorParameter("_ignore")
+        } else {
+            typeBuilder.addFunction(
+                    FunSpec.builder("__new")
+                            .addModifiers(KModifier.OVERRIDE)
+                            .returns(ClassName("godot.util", "VoidPtr"))
+                            .addStatement(
+                                    "return %T.invokeConstructor(\"$newName\")",
+                                    ClassName("godot.core", "TransferContext")
+                            )
+                            .build()
+            )
         }
     }
 
@@ -347,7 +361,8 @@ class Class @JsonCreator constructor(
         propertiesReceiverType: TypeSpec.Builder,
         icalls: MutableSet<ICall>
     ) {
-        methods.forEach { method ->
+        (if (isNative) methods else methods.filter { !it.isGetterOrSetter })
+                .forEach { method ->
             propertiesReceiverType.addFunction(method.generate(this, icalls))
         }
     }
