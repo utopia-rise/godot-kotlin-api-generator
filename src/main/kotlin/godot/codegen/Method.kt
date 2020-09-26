@@ -32,7 +32,7 @@ open class Method @JsonCreator constructor(
 
     var isGetterOrSetter: Boolean = false
 
-    fun generate(clazz: Class, icalls: MutableSet<ICall>): FunSpec {
+    fun generate(clazz: Class, icalls: MutableSet<ICall>?): FunSpec {
         val modifiers = mutableListOf<KModifier>()
 
         if (!clazz.isSingleton) {

@@ -43,7 +43,7 @@ class Class @JsonCreator constructor(
         baseClass = baseClass.escapeUnderscore()
     }
 
-    fun generate(outputDir: File, icalls: MutableSet<ICall>) {
+    fun generate(outputDir: File, icalls: MutableSet<ICall>?) {
         shouldGenerate = newName != "GlobalConstants" && tree.getBaseClass(this)?.isSingleton == false
             || isInstanciable || isSingleton
 
@@ -308,7 +308,7 @@ class Class @JsonCreator constructor(
     }
 
     private fun generateProperties(
-        icalls: MutableSet<ICall>,
+        icalls: MutableSet<ICall>?,
         propertiesReceiverType: TypeSpec.Builder
     ) {
         properties.forEach { property ->
@@ -359,7 +359,7 @@ class Class @JsonCreator constructor(
 
     private fun generateMethods(
         propertiesReceiverType: TypeSpec.Builder,
-        icalls: MutableSet<ICall>
+        icalls: MutableSet<ICall>?
     ) {
         (if (isNative) methods else methods.filter { !it.isGetterOrSetter })
                 .forEach { method ->

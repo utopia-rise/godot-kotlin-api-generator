@@ -15,24 +15,24 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
     val classes: List<Class> = ObjectMapper().readValue(jsonSource, object : TypeReference<ArrayList<Class>>() {})
 
     tree = classes.buildTree()
-    val icalls = mutableSetOf<ICall>()
+    val icalls = if (isNative) mutableSetOf<ICall>() else null
 
     classes.forEach { clazz ->
         clazz.generate(this, icalls)
     }
 
-    val iCallFileSpec = FileSpec
-        .builder("godot.icalls", "__icalls")
-        .addFunction(generateICallsVarargsFunction())
-        .addImport("kotlinx.cinterop", "set", "get", "pointed")
+    val iCallFileSpec = if (isNative) {
+        FileSpec
+            .builder("godot.icalls", "__icalls")
+            .addFunction(generateICallsVarargsFunction())
+            .addImport("kotlinx.cinterop", "set", "get", "pointed")
+    } else null
 
-    icalls.forEach { iCallFileSpec.addFunction(it.generated) }
+    icalls?.forEach { iCallFileSpec!!.addFunction(it.generated) }
 
     this.parentFile.mkdirs()
 
-    iCallFileSpec
-        .build()
-        .writeTo(this)
+    iCallFileSpec?.build()?.writeTo(this)
 
     generateEngineTypesRegistration(classes).writeTo(this)
 }
