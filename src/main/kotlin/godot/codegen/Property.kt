@@ -5,12 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import godot.codegen.utils.convertToCamelCase
-import godot.codegen.utils.convertTypeToKotlin
-import godot.codegen.utils.getPackage
-import godot.codegen.utils.isEnum
-
-import godot.codegen.utils.convertIfTypeParameter
+import godot.codegen.utils.*
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -91,6 +86,13 @@ class Property @JsonCreator constructor(
                         )
                         .build()
                 )
+            } else {
+                propertySpecBuilder.setter(
+                    FunSpec.setterBuilder()
+                        .addParameter("value", propertyType)
+                        .generateJvmMethodCall(validSetter.oldName, clazz.oldName, "Unit", "%T(value)", 1, false)
+                        .build()
+                )
             }
         }
 
@@ -111,6 +113,12 @@ class Property @JsonCreator constructor(
                             "return %M(mb, this.ptr${if (index != -1) ", $index)" else ")"}",
                             MemberName("godot.icalls", icall.name)
                         )
+                        .build()
+                )
+            } else {
+                propertySpecBuilder.getter(
+                    FunSpec.getterBuilder()
+                        .generateJvmMethodCall(validGetter.oldName, clazz.oldName, type, "", 0, false)
                         .build()
                 )
             }

@@ -165,14 +165,11 @@ val String.typeNameForICalls: TypeName
         return ClassName(icallType.getPackage(), icallType).convertIfTypeParameter()
     }
 
-fun String.convertTypeForICalls(): String {
-    if (this == "enum.Error") return "UInt"
-
-    if (this.isEnum()) return "Long"
-
-    if (this.isPrimitive() || this.isCoreType()) return this
-
-    return "Object"
+fun String.convertTypeForICalls() = when {
+    this == "enum.Error" -> "UInt"
+    isEnum() -> "Long"
+    isPrimitive() || isCoreType() -> this
+    else -> "Object"
 }
 
 fun String.defaultValue(): String = when (this) {
@@ -183,10 +180,11 @@ fun String.defaultValue(): String = when (this) {
 }
 
 val String.jvmVariantTypeValue: String
-    get() = when (this) {
-        "Unit" -> "NIL"
-        "Boolean" -> "BOOL"
-        else -> this.toUpperCase()
+    get() = when {
+        convertTypeForICalls() == "Unit" -> "NIL"
+        convertTypeForICalls() == "Boolean" -> "BOOL"
+        convertTypeForICalls().isCoreType() || convertTypeForICalls().isPrimitive() -> toUpperCase()
+        else -> "OBJECT"
     }
 
 private class TypeException(override val message: String) : Exception()

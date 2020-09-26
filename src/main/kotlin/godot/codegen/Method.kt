@@ -23,10 +23,9 @@ open class Method @JsonCreator constructor(
     val arguments: List<Argument>
 ) {
 
-    val newName: String
+    val newName: String = if (!isVirtual) oldName.convertToCamelCase() else oldName
 
     init {
-        newName = if (!isVirtual) oldName.convertToCamelCase() else oldName
         returnType = returnType.convertTypeToKotlin()
     }
 
@@ -111,46 +110,13 @@ open class Method @JsonCreator constructor(
                         }
                 )
             } else {
-                val ktVariantClassName = ClassName("godot.core", "KtVariant")
-                val transferContextClassName = ClassName("godot.core", "TransferContext")
-                if (arguments.isNotEmpty() || shouldReturn) {
-                    addStatement(
-                            "val refresh = %T.writeArguments($callArgumentsAsString)",
-                            transferContextClassName,
-                            *arguments.map { ktVariantClassName }.toTypedArray()
-                    )
-                    val returnTypeCase = if (returnType.isEnum()) "Long" else returnType
-                    addStatement(
-                            "%T.callMethod(rawPtr, \"${clazz.oldName}\", \"$oldName\", " +
-                                    "%T.Type.${returnTypeCase.jvmVariantTypeValue}, refresh)",
-                            transferContextClassName,
-                            ClassName("godot.core", "KtVariant")
-                    )
-                    if (shouldReturn) {
-                        if (returnType.isEnum()) {
-                            addStatement(
-                                    "return ${returnType.removeEnumPrefix()}.from(%T.readReturnValue().asLong())",
-                                    transferContextClassName
-                            )
-                        } else {
-                            addStatement(
-                                    "return %T.readReturnValue().as%L()",
-                                    transferContextClassName,
-                                    returnType
-                            )
-                        }
-                    } else {
-                        addStatement(
-                                "%T.readReturnValue()",
-                                transferContextClassName
-                        )
-                    }
-                } else {
-                    addStatement(
-                            "%T.callMethod(rawPtr, \"${clazz.oldName}\", \"$oldName\", TODO(), false)",
-                            transferContextClassName
-                    )
-                }
+                generateJvmMethodCall(
+                    oldName,
+                    clazz.oldName,
+                    returnType,
+                    callArgumentsAsString,
+                    arguments.size, hasVarargs
+                )
             }
         } else {
             if (shouldReturn) {
