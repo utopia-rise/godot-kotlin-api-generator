@@ -49,7 +49,7 @@ fun FunSpec.Builder.generateJvmMethodCall(
                 val icallReturnType = returnType.convertTypeForICalls()
                 if (icallReturnType == "Object") {
                     addStatement(
-                        "return %T.readReturnValue().as%L() as %L",
+                        "return %T.readReturnValue().as%L(::%L)",
                         transferContextClassName,
                         icallReturnType,
                         returnType
