@@ -83,11 +83,18 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
         .receiver(ClassName("godot.core", "TypeManager"))
 
     classes.filter { !it.isSingleton && it.newName != "Object" && it.shouldGenerate}.forEach {
-        funBuilder.addStatement(
-            "registerEngineType(%S, ::%T)",
-            it.newName,
-            ClassName(it.newName.getPackage(), it.newName)
-        )
+        if (isNative) {
+            funBuilder.addStatement(
+                "registerEngineType(%S, ::%T)",
+                it.newName,
+                ClassName(it.newName.getPackage(), it.newName)
+            )
+        } else {
+            funBuilder.addStatement(
+                "registerEngineType(%S)",
+                it.newName
+            )
+        }
     }
     return FileSpec.builder("godot", "registerEngineTypes")
         .addFunction(
