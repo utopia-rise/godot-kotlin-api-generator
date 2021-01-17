@@ -4,6 +4,7 @@ import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.TypeSpec
 
 fun ClassName.convertIfTypeParameter() = when(this.simpleName) {
     "GodotArray" -> this.parameterizedBy(ANY.copy(nullable = true))
@@ -12,22 +13,23 @@ fun ClassName.convertIfTypeParameter() = when(this.simpleName) {
 }
 
 fun FunSpec.Builder.generateJvmMethodCall(
-    method: String,
-    clazz: String,
-    returnType: String,
-    argumentsString: String,
-    argumentsCount: Int,
-    hasVarargs: Boolean
+        method: String,
+        clazz: String,
+        returnType: String,
+        argumentsString: String,
+        argumentsTypes: List<String>,
+        hasVarargs: Boolean
 ): FunSpec.Builder {
-    val ktVariantClassName = ClassName("godot.core", "KtVariant")
-    val ktVariantClassNames = (0 until argumentsCount)
-        .map { ktVariantClassName }
-        .toTypedArray()
+    val ktVariantClassNames = argumentsTypes.map {
+        ClassName("godot.core.VariantType", it.jvmVariantTypeValue)
+    }.toTypedArray()
+
     val transferContextClassName = ClassName("godot.core", "TransferContext")
+
     val shouldReturn = returnType != "Unit"
     if (ktVariantClassNames.isNotEmpty() || shouldReturn) {
         addStatement(
-            "val refresh = %T.writeArguments($argumentsString" +
+            "%T.writeArguments($argumentsString" +
                 "${if (hasVarargs) "*__var_args" else ""})",
             transferContextClassName,
             *ktVariantClassNames
@@ -62,11 +64,6 @@ fun FunSpec.Builder.generateJvmMethodCall(
                     )
                 }
             }
-        } else {
-            addStatement(
-                "%T.readReturnValue()",
-                transferContextClassName
-            )
         }
     } else {
         addStatement(

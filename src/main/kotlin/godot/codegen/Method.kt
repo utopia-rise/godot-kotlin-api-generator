@@ -115,7 +115,8 @@ open class Method @JsonCreator constructor(
                     clazz.oldName,
                     returnType,
                     callArgumentsAsString,
-                    arguments.size, hasVarargs
+                    arguments.map { it.type }.toList(),
+                    hasVarargs
                 )
             }
         } else {
@@ -145,9 +146,8 @@ open class Method @JsonCreator constructor(
                     append(sanitisedName)
                     if (argument.type.isEnum()) append(".id")
                 } else {
-                    append("%T($sanitisedName")
+                    append("%T to $sanitisedName")
                     if (argument.type.isEnum()) append(".id")
-                    append(")")
                 }
 
                 if (argument.type.isEnum()) append(".id")

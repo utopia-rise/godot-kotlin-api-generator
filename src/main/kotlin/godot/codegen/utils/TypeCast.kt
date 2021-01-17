@@ -1,11 +1,8 @@
 package godot.codegen.utils
 
-import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.TypeName
-import godot.codegen.tree
-import godot.codegen.isObjectOrItsChild
+import godot.codegen.isNative
 
 private val coreTypes = listOf(
     "GodotArray",
@@ -57,7 +54,8 @@ private val kotlinReservedNames = listOf(
     "object"
 )
 
-private val primitives = listOf("Long", "Double", "Boolean", "Unit")
+private val primitives =
+        if (isNative) listOf("Long", "Double", "Boolean", "Unit") else listOf("Int", "Long", "Float", "Double", "Boolean", "Unit")
 
 fun String.escapeUnderscore(): String {
     if (this == "") return this
@@ -149,13 +147,24 @@ fun String.convertToSnakeCase(): String =
     }.toString()
 
 fun String.convertTypeToKotlin(): String {
-    return when {
-        this == "int" -> "Long"
-        this == "float" -> "Double"
-        this == "bool" -> "Boolean"
-        this == "void" -> "Unit"
-        this == "Array" -> "GodotArray"
-        else -> this
+    return if (isNative) {
+        when(this) {
+            "int" -> "Long"
+            "float" -> "Double"
+            "bool" -> "Boolean"
+            "void" -> "Unit"
+            "Array" -> "GodotArray"
+            else -> this
+        }
+    } else {
+        when(this) {
+            "int" -> "Int"
+            "float" -> "Float"
+            "bool" -> "Boolean"
+            "void" -> "Unit"
+            "Array" -> "VariantArray"
+            else -> this
+        }
     }
 }
 
@@ -183,6 +192,8 @@ val String.jvmVariantTypeValue: String
     get() = when {
         convertTypeForICalls() == "Unit" -> "NIL"
         convertTypeForICalls() == "Boolean" -> "BOOL"
+        convertTypeForICalls() == "Int" -> "JVM_INT"
+        convertTypeForICalls() == "Float" -> "JVM_FLOAT"
         convertTypeForICalls().isCoreType() || convertTypeForICalls().isPrimitive() -> toUpperCase()
         else -> "OBJECT"
     }
