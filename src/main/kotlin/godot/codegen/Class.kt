@@ -276,8 +276,9 @@ class Class @JsonCreator constructor(
                             .addModifiers(KModifier.OVERRIDE)
                             .returns(ClassName("godot.util", "VoidPtr"))
                             .addStatement(
-                                    "return %T.invokeConstructor(\"$newName\")",
-                                    ClassName("godot.core", "TransferContext")
+                                    "return %T.invokeConstructor(%M)",
+                                    ClassName("godot.core", "TransferContext"),
+                                    MemberName("godot", engineIndexName)
                             )
                             .build()
             )
