@@ -10,15 +10,15 @@ import godot.codegen.utils.*
 @JsonIgnoreProperties(ignoreUnknown = true)
 class Property @JsonCreator constructor(
         @JsonProperty("name")
-    var oldName: String,
+        var oldName: String,
         @JsonProperty("type")
-    var type: String,
+        var type: String,
         @JsonProperty("getter")
-    var getter: String,
+        var getter: String,
         @JsonProperty("setter")
-    var setter: String,
+        var setter: String,
         @JsonProperty("index")
-    val index: Int
+        val index: Int
 ) {
     var newName = oldName.convertToCamelCase()
 
@@ -48,8 +48,8 @@ class Property @JsonCreator constructor(
     }
 
     fun initEngineIndexNames(engineClassIndexName: String) {
-        engineSetterIndexName = "${engineClassIndexName}_SET_${oldName.toUpperCase()}"
-        engineGetterIndexName = "${engineClassIndexName}_GET_${oldName.toUpperCase()}"
+        engineSetterIndexName = "ENGINEMETHOD_${engineClassIndexName}_SET_${oldName.toUpperCase()}"
+        engineGetterIndexName = "ENGINEMETHOD_${engineClassIndexName}_GET_${oldName.toUpperCase()}"
     }
 
     fun generate(clazz: Class, icalls: MutableSet<ICall>?): PropertySpec? {

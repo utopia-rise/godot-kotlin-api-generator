@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import godot.codegen.utils.convertToSnakeCase
 import godot.codegen.utils.getPackage
 import java.io.File
 
@@ -60,17 +59,21 @@ private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
             methodIndex++
         }
         clazz.properties.forEach { property ->
-            fileSpecBuilder.addProperty(
-                    PropertySpec.builder(property.engineGetterIndexName, INT, KModifier.CONST)
-                            .initializer("%L", methodIndex).build()
-            )
-            methodIndex++
+            if (property.hasValidGetter) {
+                fileSpecBuilder.addProperty(
+                        PropertySpec.builder(property.engineGetterIndexName, INT, KModifier.CONST)
+                                .initializer("%L", methodIndex).build()
+                )
+                methodIndex++
+            }
 
-            fileSpecBuilder.addProperty(
-                    PropertySpec.builder(property.engineSetterIndexName, INT, KModifier.CONST)
-                            .initializer("%L", methodIndex).build()
-            )
-            methodIndex++
+            if (property.hasValidSetter) {
+                fileSpecBuilder.addProperty(
+                        PropertySpec.builder(property.engineSetterIndexName, INT, KModifier.CONST)
+                                .initializer("%L", methodIndex).build()
+                )
+                methodIndex++
+            }
         }
     }
 
@@ -118,27 +121,65 @@ private fun generateICallsVarargsFunction(): FunSpec {
 }
 
 private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
-    val funBuilder = FunSpec.builder("registerEngineTypes")
-            .addModifiers(KModifier.INTERNAL)
-            .receiver(ClassName("godot.core", "TypeManager"))
 
-    classes.filter { !it.isSingleton && it.newName != "Object" && it.shouldGenerate }.forEach {
+    val registerTypesFunBuilder = FunSpec.builder("registerEngineTypes")
+
+    if (isNative) registerTypesFunBuilder.receiver(ClassName("godot.core", "TypeManager"))
+
+    val registerMethodsFunBuilder = FunSpec.builder("registerEngineTypeMethods")
+
+    fun addEngineTypeMethod(classIndexName: String, methodEngineName: String) {
+        registerMethodsFunBuilder.addStatement(
+                "%T.engineTypeMethod.add(%M to \"${methodEngineName}\")",
+                ClassName("godot.core", "TypeManager"),
+                MemberName("godot", classIndexName)
+        )
+    }
+
+    classes.filter { (isNative && !it.isSingleton && it.newName != "Object" && it.shouldGenerate)
+            || !isNative && it.shouldGenerate}.forEach {clazz ->
         if (isNative) {
-            funBuilder.addStatement(
+            registerTypesFunBuilder.addStatement(
                     "registerEngineType(%S, ::%T)",
-                    it.newName,
-                    ClassName(it.newName.getPackage(), it.newName)
-            )
-        } else {
-            funBuilder.addStatement(
-                    "registerEngineType(%S)",
-                    it.newName
+                    clazz.newName,
+                    ClassName(clazz.newName.getPackage(), clazz.newName)
             )
         }
+        else {
+            if (clazz.isSingleton) {
+                registerTypesFunBuilder.addStatement(
+                        "%T.registerEngineType(%S) { %T }",
+                        ClassName("godot.core", "TypeManager"),
+                        clazz.newName,
+                        ClassName(clazz.newName.getPackage(), clazz.newName)
+                )
+            } else {
+                registerTypesFunBuilder.addStatement(
+                        "%T.registerEngineType(%S, ::%T)",
+                        ClassName("godot.core", "TypeManager"),
+                        clazz.newName,
+                        ClassName(clazz.newName.getPackage(), clazz.newName)
+                )
+            }
+            clazz.methods.filter { !it.isGetterOrSetter }.forEach {
+                addEngineTypeMethod(clazz.engineIndexName, it.oldName)
+            }
+            clazz.properties.forEach {
+                if (it.hasValidGetter) {
+                    addEngineTypeMethod(clazz.engineIndexName, it.validGetter.oldName)
+                }
+                if (it.hasValidSetter) {
+                    addEngineTypeMethod(clazz.engineIndexName, it.validSetter.oldName)
+                }
+            }
+        }
     }
-    return FileSpec.builder("godot", "registerEngineTypes")
+    val registrationFile = FileSpec.builder("godot", "RegisterEngineTypes")
             .addFunction(
-                    funBuilder.build()
+                    registerTypesFunBuilder.build()
             )
-            .build()
+
+    if (!isNative) registrationFile.addFunction(registerMethodsFunBuilder.build())
+
+    return registrationFile.build()
 }

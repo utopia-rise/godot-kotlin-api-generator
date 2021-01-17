@@ -36,7 +36,7 @@ class Class @JsonCreator constructor(
 ) {
 
     val newName: String = oldName.escapeUnderscore()
-    val engineIndexName = oldName.toUpperCase()
+    val engineIndexName = "ENGINECLASS_${oldName.toUpperCase()}"
     var shouldGenerate: Boolean = true
     val additionalImports = mutableListOf<Pair<String, String>>()
 

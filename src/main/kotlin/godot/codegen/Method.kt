@@ -33,7 +33,7 @@ open class Method @JsonCreator constructor(
     lateinit var engineIndexName: String
 
     fun initEngineIndex(engineClassIndexName: String) {
-        engineIndexName = "${engineClassIndexName}_${oldName.toUpperCase()}"
+        engineIndexName = "ENGINEMETHOD_${engineClassIndexName}_${oldName.toUpperCase()}"
     }
 
     fun generate(clazz: Class, icalls: MutableSet<ICall>?): FunSpec {
