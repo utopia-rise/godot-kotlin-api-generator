@@ -36,6 +36,7 @@ class Class @JsonCreator constructor(
 ) {
 
     val newName: String = oldName.escapeUnderscore()
+    val engineIndexName = oldName.toUpperCase()
     var shouldGenerate: Boolean = true
     val additionalImports = mutableListOf<Pair<String, String>>()
 
@@ -43,13 +44,14 @@ class Class @JsonCreator constructor(
         baseClass = baseClass.escapeUnderscore()
     }
 
-    fun generate(outputDir: File, icalls: MutableSet<ICall>?) {
+    fun initClass() {
         shouldGenerate = newName != "GlobalConstants" && tree.getBaseClass(this)?.isSingleton == false
-            || isInstanciable || isSingleton
-
-        if (!shouldGenerate) return
-
+                || isInstanciable || isSingleton
         applyGettersAndSettersForProperties()
+    }
+
+    fun generate(outputDir: File, icalls: MutableSet<ICall>?) {
+        if (!shouldGenerate) return
 
         val className = ClassName("godot", newName)
 
@@ -290,7 +292,7 @@ class Class @JsonCreator constructor(
 
     private fun generateSignals(typeBuilder: TypeSpec.Builder) {
         signals.forEach {
-            if (properties.map { p -> p.name }.contains(it.name)) it.name = "signal${it.name.capitalize()}"
+            if (properties.map { p -> p.newName }.contains(it.name)) it.name = "signal${it.name.capitalize()}"
             typeBuilder.addProperty(it.generated)
         }
     }
@@ -321,7 +323,7 @@ class Class @JsonCreator constructor(
                     ClassName(if (parameterType.isCoreType()) "godot.core" else "godot", parameterType)
 
                 if (property.hasValidSetter && parameterType.isCoreTypeAdaptedForKotlin()) {
-                    val parameterName = property.name
+                    val parameterName = property.newName
                     val propertyFunSpec = FunSpec.builder(parameterName)
 
                     if (!isSingleton) {

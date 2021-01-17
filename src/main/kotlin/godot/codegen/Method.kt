@@ -30,6 +30,11 @@ open class Method @JsonCreator constructor(
     }
 
     var isGetterOrSetter: Boolean = false
+    lateinit var engineIndexName: String
+
+    fun initEngineIndex(engineClassIndexName: String) {
+        engineIndexName = "${engineClassIndexName}_${oldName.toUpperCase()}"
+    }
 
     fun generate(clazz: Class, icalls: MutableSet<ICall>?): FunSpec {
         val modifiers = mutableListOf<KModifier>()

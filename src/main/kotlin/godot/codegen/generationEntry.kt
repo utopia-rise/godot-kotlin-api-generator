@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import godot.codegen.utils.convertToSnakeCase
 import godot.codegen.utils.getPackage
 import java.io.File
 
@@ -17,15 +18,22 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
     tree = classes.buildTree()
     val icalls = if (isNative) mutableSetOf<ICall>() else null
 
+    classes.forEach {
+        it.initClass()
+        it.methods.forEach { method -> method.initEngineIndex(it.engineIndexName) }
+        it.properties.forEach { property -> property.initEngineIndexNames(it.engineIndexName) }
+    }
+
+    if (!isNative) generateEngineIndexesFile(classes).writeTo(this)
+
     classes.forEach { clazz ->
         clazz.generate(this, icalls)
     }
 
     val iCallFileSpec = if (isNative) {
-        FileSpec
-            .builder("godot.icalls", "__icalls")
-            .addFunction(generateICallsVarargsFunction())
-            .addImport("kotlinx.cinterop", "set", "get", "pointed")
+        FileSpec.builder("godot.icalls", "__icalls")
+                .addFunction(generateICallsVarargsFunction())
+                .addImport("kotlinx.cinterop", "set", "get", "pointed")
     } else null
 
     icalls?.forEach { iCallFileSpec!!.addFunction(it.generated) }
@@ -37,26 +45,58 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
     generateEngineTypesRegistration(classes).writeTo(this)
 }
 
+private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
+    val fileSpecBuilder = FileSpec.builder("godot", "EngineIndexes")
+    var methodIndex = 0
+    classes.filter { it.shouldGenerate }.forEachIndexed { classIndex, clazz ->
+        fileSpecBuilder.addProperty(
+                PropertySpec.builder(clazz.engineIndexName, INT, KModifier.CONST).initializer("%L", classIndex).build()
+        )
+        clazz.methods.filter { !it.isGetterOrSetter }.forEach { method ->
+            fileSpecBuilder.addProperty(
+                    PropertySpec.builder(method.engineIndexName, INT, KModifier.CONST)
+                            .initializer("%L", methodIndex).build()
+            )
+            methodIndex++
+        }
+        clazz.properties.forEach { property ->
+            fileSpecBuilder.addProperty(
+                    PropertySpec.builder(property.engineGetterIndexName, INT, KModifier.CONST)
+                            .initializer("%L", methodIndex).build()
+            )
+            methodIndex++
+
+            fileSpecBuilder.addProperty(
+                    PropertySpec.builder(property.engineSetterIndexName, INT, KModifier.CONST)
+                            .initializer("%L", methodIndex).build()
+            )
+            methodIndex++
+        }
+    }
+
+    return fileSpecBuilder.build()
+}
+
 private fun generateICallsVarargsFunction(): FunSpec {
     return FunSpec
-        .builder("_icall_varargs")
-        .addModifiers(KModifier.INTERNAL)
-        .returns(ClassName("godot.core", "Variant"))
-        .addParameter(
-            "mb",
-            ClassName("kotlinx.cinterop", "CPointer")
-                .parameterizedBy(ClassName("godot.gdnative", "godot_method_bind"))
-        )
-        .addParameter(
-            "inst",
-            ClassName("kotlinx.cinterop", "COpaquePointer")
-        )
-        .addParameter(
-            "arguments",
-            ClassName("kotlin", "Array").parameterizedBy(STAR)
-        )
-        .addStatement(
-            """return %M {
+            .builder("_icall_varargs")
+            .addModifiers(KModifier.INTERNAL)
+            .returns(ClassName("godot.core", "Variant"))
+            .addParameter(
+                    "mb",
+                    ClassName("kotlinx.cinterop", "CPointer")
+                            .parameterizedBy(ClassName("godot.gdnative", "godot_method_bind"))
+            )
+            .addParameter(
+                    "inst",
+                    ClassName("kotlinx.cinterop", "COpaquePointer")
+            )
+            .addParameter(
+                    "arguments",
+                    ClassName("kotlin", "Array").parameterizedBy(STAR)
+            )
+            .addStatement(
+                    """return %M {
                             |    val args = allocArray<%T<%M>>(arguments.size)
                             |    for ((i,arg) in arguments.withIndex()) args[i] = %T.wrap(arg)._handle.ptr
                             |    val result = %T.gdnative.godot_method_bind_call!!.%M(mb, inst, args, arguments.size, null)
@@ -64,41 +104,41 @@ private fun generateICallsVarargsFunction(): FunSpec {
                             |    %T(result)
                             |}
                             |""".trimMargin(),
-            MemberName("godot.internal.utils", "godotScoped"),
-            ClassName("kotlinx.cinterop", "CPointerVar"),
-            MemberName("godot.gdnative", "godot_variant"),
-            ClassName("godot.core", "Variant"),
-            ClassName("godot.core", "Godot"),
-            MemberName("kotlinx.cinterop", "invoke"),
-            ClassName("godot.core", "Godot"),
-            MemberName("kotlinx.cinterop", "invoke"),
-            ClassName("godot.core", "Variant")
-        )
-        .build()
+                    MemberName("godot.internal.utils", "godotScoped"),
+                    ClassName("kotlinx.cinterop", "CPointerVar"),
+                    MemberName("godot.gdnative", "godot_variant"),
+                    ClassName("godot.core", "Variant"),
+                    ClassName("godot.core", "Godot"),
+                    MemberName("kotlinx.cinterop", "invoke"),
+                    ClassName("godot.core", "Godot"),
+                    MemberName("kotlinx.cinterop", "invoke"),
+                    ClassName("godot.core", "Variant")
+            )
+            .build()
 }
 
 private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
     val funBuilder = FunSpec.builder("registerEngineTypes")
-        .addModifiers(KModifier.INTERNAL)
-        .receiver(ClassName("godot.core", "TypeManager"))
+            .addModifiers(KModifier.INTERNAL)
+            .receiver(ClassName("godot.core", "TypeManager"))
 
-    classes.filter { !it.isSingleton && it.newName != "Object" && it.shouldGenerate}.forEach {
+    classes.filter { !it.isSingleton && it.newName != "Object" && it.shouldGenerate }.forEach {
         if (isNative) {
             funBuilder.addStatement(
-                "registerEngineType(%S, ::%T)",
-                it.newName,
-                ClassName(it.newName.getPackage(), it.newName)
+                    "registerEngineType(%S, ::%T)",
+                    it.newName,
+                    ClassName(it.newName.getPackage(), it.newName)
             )
         } else {
             funBuilder.addStatement(
-                "registerEngineType(%S)",
-                it.newName
+                    "registerEngineType(%S)",
+                    it.newName
             )
         }
     }
     return FileSpec.builder("godot", "registerEngineTypes")
-        .addFunction(
-            funBuilder.build()
-        )
-        .build()
+            .addFunction(
+                    funBuilder.build()
+            )
+            .build()
 }

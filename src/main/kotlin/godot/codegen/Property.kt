@@ -4,43 +4,52 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.squareup.kotlinpoet.*
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import godot.codegen.utils.*
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 class Property @JsonCreator constructor(
-    @JsonProperty("name")
-    var name: String,
-    @JsonProperty("type")
+        @JsonProperty("name")
+    var oldName: String,
+        @JsonProperty("type")
     var type: String,
-    @JsonProperty("getter")
+        @JsonProperty("getter")
     var getter: String,
-    @JsonProperty("setter")
+        @JsonProperty("setter")
     var setter: String,
-    @JsonProperty("index")
+        @JsonProperty("index")
     val index: Int
 ) {
+    var newName = oldName.convertToCamelCase()
+
     var hasValidGetter: Boolean = false
     lateinit var validGetter: Method
 
     var hasValidSetter: Boolean = false
     lateinit var validSetter: Method
 
+    lateinit var engineSetterIndexName: String
+    lateinit var engineGetterIndexName: String
+
     init {
-        name = name.convertToCamelCase()
         type = type.convertTypeToKotlin()
 
         getter = getter.convertToCamelCase()
         setter = setter.convertToCamelCase()
 
-        name = name.replace('/', '_')
+        oldName = oldName.replace('/', '_')
+        newName = newName.replace('/', '_')
 
         // There are property with multiple types, and it's all Materials, so
         // Godot's developer should make more strict API
         if (type.indexOf(",") != -1) {
             type = "Material"
         }
+    }
+
+    fun initEngineIndexNames(engineClassIndexName: String) {
+        engineSetterIndexName = "${engineClassIndexName}_SET_${oldName.toUpperCase()}"
+        engineGetterIndexName = "${engineClassIndexName}_GET_${oldName.toUpperCase()}"
     }
 
     fun generate(clazz: Class, icalls: MutableSet<ICall>?): PropertySpec? {
@@ -51,7 +60,7 @@ class Property @JsonCreator constructor(
         }
 
         // Sorry for this, CPUParticles has "scale" property overrides ancestor's "scale", but mismatches type
-        if (clazz.newName == "CPUParticles" && name == "scale") name = "_scale"
+        if (clazz.newName == "CPUParticles" && newName == "scale") newName = "_scale"
 
         val modifiers = mutableListOf<KModifier>()
         if (!clazz.isSingleton) {
@@ -61,7 +70,7 @@ class Property @JsonCreator constructor(
         val propertyType = ClassName(type.getPackage(), type).convertIfTypeParameter()
         val propertySpecBuilder = PropertySpec
             .builder(
-                name,
+                newName,
                 propertyType,
                 modifiers
             )
@@ -129,7 +138,7 @@ class Property @JsonCreator constructor(
                         "%L %T(%S)",
                         "throw",
                         UninitializedPropertyAccessException::class,
-                        "Cannot access property $name: has no getter"
+                        "Cannot access property $newName: has no getter"
                     )
                     .build()
             )
@@ -139,7 +148,7 @@ class Property @JsonCreator constructor(
     }
 
     infix fun applyGetterOrSetter(method: Method) {
-        if (name == "") return
+        if (newName == "") return
 
         when (method.newName) {
             getter -> {

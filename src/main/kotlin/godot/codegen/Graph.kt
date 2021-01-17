@@ -65,7 +65,7 @@ fun Graph<Class>.doAncestorsHaveProperty(cl: Class, prop: Property): Boolean {
 
     fun Graph.Node<Class>.findPropertyInHierarchy(): Boolean {
         value.properties.forEach {
-            if (it.name == prop.name) return true
+            if (it.newName == prop.newName) return true
         }
         return parent?.findPropertyInHierarchy() ?: false
     }
