@@ -118,6 +118,7 @@ open class Method @JsonCreator constructor(
                 generateJvmMethodCall(
                     oldName,
                     clazz.oldName,
+                    engineIndexName,
                     returnType,
                     callArgumentsAsString,
                     arguments.map { it.type }.toList(),

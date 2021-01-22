@@ -99,7 +99,7 @@ class Property @JsonCreator constructor(
                 propertySpecBuilder.setter(
                     FunSpec.setterBuilder()
                         .addParameter("value", propertyType)
-                        .generateJvmMethodCall(validSetter.oldName, clazz.oldName, "Unit", "%T to value", listOf(type), false)
+                        .generateJvmMethodCall(validSetter.oldName, clazz.oldName, engineSetterIndexName, "Unit", "%T to value", listOf(type), false)
                         .build()
                 )
             }
@@ -127,7 +127,7 @@ class Property @JsonCreator constructor(
             } else {
                 propertySpecBuilder.getter(
                     FunSpec.getterBuilder()
-                        .generateJvmMethodCall(validGetter.oldName, clazz.oldName, type, "", listOf(), false)
+                        .generateJvmMethodCall(validGetter.oldName, clazz.oldName, engineGetterIndexName, type, "", listOf(), false)
                         .build()
                 )
             }

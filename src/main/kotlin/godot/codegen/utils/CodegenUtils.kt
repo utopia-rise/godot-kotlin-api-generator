@@ -1,10 +1,7 @@
 package godot.codegen.utils
 
-import com.squareup.kotlinpoet.ANY
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
-import com.squareup.kotlinpoet.TypeSpec
 
 fun ClassName.convertIfTypeParameter() = when(this.simpleName) {
     "GodotArray" -> this.parameterizedBy(ANY.copy(nullable = true))
@@ -15,6 +12,7 @@ fun ClassName.convertIfTypeParameter() = when(this.simpleName) {
 fun FunSpec.Builder.generateJvmMethodCall(
         method: String,
         clazz: String,
+        engineIndexName: String,
         returnType: String,
         argumentsString: String,
         argumentsTypes: List<String>,
@@ -36,10 +34,10 @@ fun FunSpec.Builder.generateJvmMethodCall(
         )
         val returnTypeCase = if (returnType.isEnum()) "Long" else returnType
         addStatement(
-            "%T.callMethod(rawPtr, \"${clazz}\", \"$method\", " +
-                "%T.Type.${returnTypeCase.jvmVariantTypeValue}, refresh)",
+            "%T.callMethod(rawPtr, %M, %T)",
             transferContextClassName,
-            ClassName("godot.core", "KtVariant")
+            MemberName("godot", engineIndexName),
+            ClassName("godot.core.VariantType", clazz.jvmVariantTypeValue)
         )
         if (shouldReturn) {
             if (returnType.isEnum()) {
