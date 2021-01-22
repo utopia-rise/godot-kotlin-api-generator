@@ -50,12 +50,12 @@ private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
     var methodIndex = 0
     classes.filter { it.shouldGenerate }.forEachIndexed { classIndex, clazz ->
         fileSpecBuilder.addProperty(
-            PropertySpec.builder(clazz.engineIndexName, INT, KModifier.CONST).initializer("%L", classIndex).build()
+            PropertySpec.builder(clazz.engineIndexName, INT, KModifier.CONST).initializer("%L", classIndex).addModifiers(KModifier.INTERNAL).build()
         )
         clazz.methods.filter { !it.isGetterOrSetter }.forEach { method ->
             fileSpecBuilder.addProperty(
                 PropertySpec.builder(method.engineIndexName, INT, KModifier.CONST)
-                    .initializer("%L", methodIndex).build()
+                    .initializer("%L", methodIndex).addModifiers(KModifier.INTERNAL).build()
             )
             methodIndex++
         }
@@ -63,7 +63,7 @@ private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
             if (property.hasValidGetter) {
                 fileSpecBuilder.addProperty(
                     PropertySpec.builder(property.engineGetterIndexName, INT, KModifier.CONST)
-                        .initializer("%L", methodIndex).build()
+                        .initializer("%L", methodIndex).addModifiers(KModifier.INTERNAL).build()
                 )
                 methodIndex++
             }
@@ -71,7 +71,7 @@ private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
             if (property.hasValidSetter) {
                 fileSpecBuilder.addProperty(
                     PropertySpec.builder(property.engineSetterIndexName, INT, KModifier.CONST)
-                        .initializer("%L", methodIndex).build()
+                        .initializer("%L", methodIndex).addModifiers(KModifier.INTERNAL).build()
                 )
                 methodIndex++
             }

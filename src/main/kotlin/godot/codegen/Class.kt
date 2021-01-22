@@ -271,12 +271,13 @@ class Class @JsonCreator constructor(
                 ).addSuperclassConstructorParameter("_ignore")
             }
         } else {
+            val functionToCall = if (isSingleton) "getSingleton" else "invokeConstructor"
             typeBuilder.addFunction(
                     FunSpec.builder("__new")
                             .addModifiers(KModifier.OVERRIDE)
                             .returns(ClassName("godot.util", "VoidPtr"))
                             .addStatement(
-                                    "return %T.invokeConstructor(%M)",
+                                    "return %T.$functionToCall(%M)",
                                     ClassName("godot.core", "TransferContext"),
                                     MemberName("godot", engineIndexName)
                             )
