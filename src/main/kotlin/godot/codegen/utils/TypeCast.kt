@@ -6,6 +6,7 @@ import godot.codegen.isNative
 
 private val coreTypes = listOf(
     "GodotArray",
+    "VariantArray",
     "Basis",
     "Color",
     "Dictionary",
@@ -194,6 +195,7 @@ val String.jvmVariantTypeValue: String
         convertTypeForICalls() == "Boolean" -> "BOOL"
         convertTypeForICalls() == "Int" -> "JVM_INT"
         convertTypeForICalls() == "Float" -> "JVM_FLOAT"
+        convertTypeForICalls() == "NodePath" -> "NODE_PATH"
         convertTypeForICalls().isCoreType() || convertTypeForICalls().isPrimitive() -> toUpperCase()
         else -> "OBJECT"
     }

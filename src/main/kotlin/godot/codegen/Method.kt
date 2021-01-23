@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.squareup.kotlinpoet.*
 
-import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import godot.codegen.utils.*
 
 
@@ -50,7 +49,9 @@ open class Method @JsonCreator constructor(
         val shouldReturn = returnType != "Unit"
         if (shouldReturn) {
             val simpleName = returnType.removeEnumPrefix()
-            generatedFunBuilder.returns(ClassName(returnType.getPackage(), simpleName).convertIfTypeParameter())
+            val nullable = returnType.convertTypeForICalls() == "Object"
+            val returnClassName = ClassName(returnType.getPackage(), simpleName).copy(nullable = nullable) as ClassName
+            generatedFunBuilder.returns(returnClassName.convertIfTypeParameter())
         }
 
         if (returnType.isEnum()) {

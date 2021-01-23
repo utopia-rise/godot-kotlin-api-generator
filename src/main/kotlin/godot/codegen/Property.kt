@@ -67,7 +67,9 @@ class Property @JsonCreator constructor(
             modifiers.add(if (tree.doAncestorsHaveProperty(clazz, this)) KModifier.OVERRIDE else KModifier.OPEN)
         }
 
-        val propertyType = ClassName(type.getPackage(), type).convertIfTypeParameter()
+        val nullable = type.convertTypeForICalls() == "Object"
+        val propertyTypeName = ClassName(type.getPackage(), type).copy(nullable = nullable) as ClassName
+        val propertyType = propertyTypeName.convertIfTypeParameter()
         val propertySpecBuilder = PropertySpec
             .builder(
                 newName,
@@ -88,7 +90,10 @@ class Property @JsonCreator constructor(
                 propertySpecBuilder.setter(
                     FunSpec.setterBuilder()
                         .addParameter("value", propertyType)
-                        .addStatement("val mb = %M(\"${clazz.oldName}\",\"${validSetter.oldName}\")", MemberName("godot.internal.utils", "getMethodBind"))
+                        .addStatement(
+                            "val mb = %M(\"${clazz.oldName}\",\"${validSetter.oldName}\")",
+                            MemberName("godot.internal.utils", "getMethodBind")
+                        )
                         .addStatement(
                             "%M(mb, this.ptr${if (index != -1) ", $index, value)" else ", value)"}",
                             MemberName("godot.icalls", icall.name)
@@ -99,7 +104,15 @@ class Property @JsonCreator constructor(
                 propertySpecBuilder.setter(
                     FunSpec.setterBuilder()
                         .addParameter("value", propertyType)
-                        .generateJvmMethodCall(validSetter.oldName, clazz.oldName, engineSetterIndexName, "Unit", "%T to value", listOf(type), false)
+                        .generateJvmMethodCall(
+                            validSetter.oldName,
+                            clazz.oldName,
+                            engineSetterIndexName,
+                            "Unit",
+                            "%T to value",
+                            listOf(type),
+                            false
+                        )
                         .build()
                 )
             }
@@ -127,7 +140,15 @@ class Property @JsonCreator constructor(
             } else {
                 propertySpecBuilder.getter(
                     FunSpec.getterBuilder()
-                        .generateJvmMethodCall(validGetter.oldName, clazz.oldName, engineGetterIndexName, type, "", listOf(), false)
+                        .generateJvmMethodCall(
+                            validGetter.oldName,
+                            clazz.oldName,
+                            engineGetterIndexName,
+                            type,
+                            "",
+                            listOf(),
+                            false
+                        )
                         .build()
                 )
             }
