@@ -49,7 +49,7 @@ open class Method @JsonCreator constructor(
         val shouldReturn = returnType != "Unit"
         if (shouldReturn) {
             val simpleName = returnType.removeEnumPrefix()
-            val nullable = returnType.convertTypeForICalls() == "Object"
+            val nullable = returnType.convertTypeForICalls() == "Object" || returnType.convertTypeForICalls() == "Any"
             val returnClassName = ClassName(returnType.getPackage(), simpleName).copy(nullable = nullable) as ClassName
             generatedFunBuilder.returns(returnClassName.convertIfTypeParameter())
         }

@@ -13,6 +13,7 @@ import godot.codegen.utils.getPackage
 
 import godot.codegen.utils.convertIfTypeParameter
 
+val signalPackage = if (isNative) "godot.core" else "godot.signals"
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 class Signal @JsonCreator constructor(
@@ -28,17 +29,17 @@ class Signal @JsonCreator constructor(
                 PropertySpec
                     .builder(
                         name.convertToCamelCase().escapeKotlinReservedNames(),
-                        ClassName("godot.core", "Signal0")
+                        ClassName(signalPackage, "Signal0")
                     )
                     .delegate(
                         "%M()",
-                        MemberName("godot.core", "signal")
+                        MemberName(signalPackage, "signal")
                     )
             } else {
                 PropertySpec
                     .builder(
                         name.convertToCamelCase().escapeKotlinReservedNames(),
-                        ClassName("godot.core", "Signal${arguments.size}")
+                        ClassName(signalPackage, "Signal${arguments.size}")
                             .parameterizedBy(
                                 *arguments
                                     .map {
@@ -52,7 +53,7 @@ class Signal @JsonCreator constructor(
                             .map { "\"${it.name}\"" + if (it != arguments.last()) ", " else "" }
                             .reduce { acc, s -> acc + s }
                     })",
-                        MemberName("godot.core", "signal")
+                        MemberName(signalPackage, "signal")
                     )
             }
             return builder.build()

@@ -38,11 +38,17 @@ fun FunSpec.Builder.generateJvmMethodCall(
         )
     }
 
+    val returnTypeVariantTypeClass = if (returnType.isEnum()) {
+        ClassName("godot.core.VariantType", "LONG")
+    } else {
+        ClassName("godot.core.VariantType", returnType.jvmVariantTypeValue)
+    }
+
     addStatement(
         "%T.callMethod(rawPtr, %M, %T)",
         transferContextClassName,
         MemberName("godot", engineIndexName),
-        ClassName("godot.core.VariantType", clazz.jvmVariantTypeValue)
+        returnTypeVariantTypeClass
     )
 
     if (shouldReturn) {
@@ -52,14 +58,13 @@ fun FunSpec.Builder.generateJvmMethodCall(
                 transferContextClassName
             )
         } else {
-            val isNullableReturn = returnType.convertTypeForICalls() == "Object"
-            val nullableString = if (isNullableReturn) "?" else ""
+            val isNullableReturn = returnType.convertTypeForICalls() == "Object" || returnType.convertTypeForICalls() == "Any"
             addStatement(
-                "return %T.readReturnValue(%T, %L) as %T$nullableString",
+                "return %T.readReturnValue(%T, %L) as %T",
                 transferContextClassName,
-                ClassName("godot.core.VariantType", returnType.jvmVariantTypeValue),
+                returnTypeVariantTypeClass,
                 isNullableReturn,
-                ClassName(returnType.getPackage(), returnType.convertTypeToKotlin())
+                ClassName(returnType.getPackage(), returnType.convertTypeToKotlin()).copy(nullable = isNullableReturn)
             )
         }
     }

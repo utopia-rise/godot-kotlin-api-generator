@@ -31,7 +31,8 @@ private val coreTypes = listOf(
     "Transform2D",
     "Variant",
     "Vector2",
-    "Vector3"
+    "Vector3",
+    "Any"
 )
 
 private val coreTypeAdaptedForKotlin =
@@ -101,7 +102,7 @@ fun String.getPackage() =
                 }
             }
         }
-        isPrimitive() || this == "String" -> "kotlin"
+    isPrimitive() || this == "String" || this == "Any" -> "kotlin"
         isCoreType()  -> "godot.core"
         else -> "godot"
     }
@@ -164,6 +165,7 @@ fun String.convertTypeToKotlin(): String {
             "bool" -> "Boolean"
             "void" -> "Unit"
             "Array" -> "VariantArray"
+            "Variant" -> "Any"
             else -> this
         }
     }
@@ -196,6 +198,7 @@ val String.jvmVariantTypeValue: String
         convertTypeForICalls() == "Int" -> "JVM_INT"
         convertTypeForICalls() == "Float" -> "JVM_FLOAT"
         convertTypeForICalls() == "NodePath" -> "NODE_PATH"
+        convertTypeForICalls() == "VariantArray" -> "VARIANT_ARRAY"
         convertTypeForICalls().isCoreType() || convertTypeForICalls().isPrimitive() -> toUpperCase()
         else -> "OBJECT"
     }

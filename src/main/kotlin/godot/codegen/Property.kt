@@ -67,7 +67,7 @@ class Property @JsonCreator constructor(
             modifiers.add(if (tree.doAncestorsHaveProperty(clazz, this)) KModifier.OVERRIDE else KModifier.OPEN)
         }
 
-        val nullable = type.convertTypeForICalls() == "Object"
+        val nullable = type.convertTypeForICalls() == "Object" || type.convertTypeForICalls() == "Any"
         val propertyTypeName = ClassName(type.getPackage(), type).copy(nullable = nullable) as ClassName
         val propertyType = propertyTypeName.convertIfTypeParameter()
         val propertySpecBuilder = PropertySpec

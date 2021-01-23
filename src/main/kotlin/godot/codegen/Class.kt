@@ -62,7 +62,9 @@ class Class @JsonCreator constructor(
 
             generatePointerVariable(classTypeBuilder)
             generateInitAndDestroy(classTypeBuilder)
-            generateSignalExtensions(classTypeBuilder)
+            if (isNative) {
+                generateSignalExtensions(classTypeBuilder)
+            }
             generateToVariantMethod(classTypeBuilder)
         }
 
