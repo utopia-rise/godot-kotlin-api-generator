@@ -58,14 +58,14 @@ class Class @JsonCreator constructor(
         val classTypeBuilder = createTypeBuilder(className)
 
         if (newName == "Object") {
-            if (!isNative) classTypeBuilder.superclass(ClassName("godot.core", "KtObject"))
-
-            generatePointerVariable(classTypeBuilder)
-            generateInitAndDestroy(classTypeBuilder)
             if (isNative) {
+                generatePointerVariable(classTypeBuilder)
+                generateInitAndDestroy(classTypeBuilder)
                 generateSignalExtensions(classTypeBuilder)
+                generateToVariantMethod(classTypeBuilder)
+            } else {
+                classTypeBuilder.superclass(ClassName("godot.core", "KtObject"))
             }
-            generateToVariantMethod(classTypeBuilder)
         }
 
         generateConstructors(classTypeBuilder)

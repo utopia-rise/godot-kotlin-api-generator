@@ -199,6 +199,13 @@ val String.jvmVariantTypeValue: String
         convertTypeForICalls() == "Float" -> "JVM_FLOAT"
         convertTypeForICalls() == "NodePath" -> "NODE_PATH"
         convertTypeForICalls() == "VariantArray" -> "ARRAY"
+        convertTypeForICalls() == "PoolByteArray" -> "POOL_BYTE_ARRAY"
+        convertTypeForICalls() == "PoolIntArray" -> "POOL_INT_ARRAY"
+        convertTypeForICalls() == "PoolRealArray" -> "POOL_REAL_ARRAY"
+        convertTypeForICalls() == "PoolStringArray" -> "POOL_STRING_ARRAY"
+        convertTypeForICalls() == "PoolVector2Array" -> "POOL_VECTOR2_ARRAY"
+        convertTypeForICalls() == "PoolVector3Array" -> "POOL_VECTOR3_ARRAY"
+        convertTypeForICalls() == "PoolColorArray" -> "POOL_COLOR_ARRAY"
         convertTypeForICalls().isCoreType() || convertTypeForICalls().isPrimitive() -> toUpperCase()
         else -> "OBJECT"
     }
