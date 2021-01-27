@@ -65,12 +65,17 @@ fun FunSpec.Builder.generateJvmMethodCall(
             )
         } else {
             val isNullableReturn = returnType.convertTypeForICalls() == "Object" || returnType.convertTypeForICalls() == "Any"
+            var castClassName: TypeName = ClassName(returnType.getPackage(), returnType.convertTypeToKotlin())
+                .copy(nullable = isNullableReturn)
+            if (returnType.convertTypeToKotlin() == "VariantArray") {
+                castClassName = (castClassName as ClassName).parameterizedBy(ANY.copy(true))
+            }
             addStatement(
                 "return %T.readReturnValue(%T, %L) as %T",
                 transferContextClassName,
                 returnTypeVariantTypeClass,
                 isNullableReturn,
-                ClassName(returnType.getPackage(), returnType.convertTypeToKotlin()).copy(nullable = isNullableReturn)
+                castClassName
             )
         }
     }
