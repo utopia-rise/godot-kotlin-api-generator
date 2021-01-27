@@ -60,8 +60,10 @@ fun FunSpec.Builder.generateJvmMethodCall(
     if (shouldReturn) {
         if (returnType.isEnum()) {
             addStatement(
-                "return ${returnType.removeEnumPrefix()}.from(%T.readReturnValue().asLong())",
-                transferContextClassName
+                "return ${returnType.removeEnumPrefix()}.values()[%T.readReturnValue(%T) as %T]",
+                transferContextClassName,
+                ClassName("godot.core.VariantType", "JVM_INT"),
+                INT
             )
         } else {
             val isNullableReturn = returnType.convertTypeForICalls() == "Object" || returnType.convertTypeForICalls() == "Any"
@@ -69,6 +71,8 @@ fun FunSpec.Builder.generateJvmMethodCall(
                 .copy(nullable = isNullableReturn)
             if (returnType.convertTypeToKotlin() == "VariantArray") {
                 castClassName = (castClassName as ClassName).parameterizedBy(ANY.copy(true))
+            } else if (returnType.convertTypeToKotlin() == "Dictionary") {
+                castClassName = (castClassName as ClassName).parameterizedBy(ANY.copy(true), ANY.copy(true))
             }
             addStatement(
                 "return %T.readReturnValue(%T, %L) as %T",

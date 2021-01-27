@@ -42,6 +42,10 @@ open class Method @JsonCreator constructor(
             modifiers.add(getModifier(clazz))
         }
 
+        if (!isNative && clazz.newName == "Object" && newName == "getInstanceId") {
+            modifiers.add(KModifier.OVERRIDE)
+        }
+
         val generatedFunBuilder = FunSpec
             .builder(newName)
             .addModifiers(modifiers)

@@ -160,8 +160,8 @@ fun String.convertTypeToKotlin(): String {
         }
     } else {
         when(this) {
-            "int" -> "Int"
-            "float" -> "Float"
+            "int" -> "Long"
+            "float" -> "Double"
             "bool" -> "Boolean"
             "void" -> "Unit"
             "Array" -> "VariantArray"
@@ -198,6 +198,7 @@ val String.jvmVariantTypeValue: String
         convertTypeForICalls() == "Int" -> "JVM_INT"
         convertTypeForICalls() == "Float" -> "JVM_FLOAT"
         convertTypeForICalls() == "NodePath" -> "NODE_PATH"
+        convertTypeForICalls() == "RID" -> "_RID"
         convertTypeForICalls() == "VariantArray" -> "ARRAY"
         convertTypeForICalls() == "PoolByteArray" -> "POOL_BYTE_ARRAY"
         convertTypeForICalls() == "PoolIntArray" -> "POOL_INT_ARRAY"

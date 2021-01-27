@@ -369,7 +369,12 @@ class Class @JsonCreator constructor(
     ) {
         (if (isNative) methods else methods.filter { !it.isGetterOrSetter })
                 .forEach { method ->
-            propertiesReceiverType.addFunction(method.generate(this, icalls))
+                    // FIX API for JVM
+                    val isFreeMethod = newName == "Object" && method.newName == "free"
+                    val shouldGenerate = (!isFreeMethod && !isNative) || isNative
+                    if (shouldGenerate) {
+                        propertiesReceiverType.addFunction(method.generate(this, icalls))
+                    }
         }
     }
 
