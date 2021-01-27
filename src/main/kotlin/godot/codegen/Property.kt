@@ -105,8 +105,6 @@ class Property @JsonCreator constructor(
                     FunSpec.setterBuilder()
                         .addParameter("value", propertyType)
                         .generateJvmMethodCall(
-                            validSetter.oldName,
-                            clazz.oldName,
                             engineSetterIndexName,
                             "Unit",
                             "%T to value",
@@ -141,8 +139,6 @@ class Property @JsonCreator constructor(
                 propertySpecBuilder.getter(
                     FunSpec.getterBuilder()
                         .generateJvmMethodCall(
-                            validGetter.oldName,
-                            clazz.oldName,
                             engineGetterIndexName,
                             type,
                             "",

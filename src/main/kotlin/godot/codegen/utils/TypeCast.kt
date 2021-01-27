@@ -198,7 +198,7 @@ val String.jvmVariantTypeValue: String
         convertTypeForICalls() == "Int" -> "JVM_INT"
         convertTypeForICalls() == "Float" -> "JVM_FLOAT"
         convertTypeForICalls() == "NodePath" -> "NODE_PATH"
-        convertTypeForICalls() == "VariantArray" -> "VARIANT_ARRAY"
+        convertTypeForICalls() == "VariantArray" -> "ARRAY"
         convertTypeForICalls().isCoreType() || convertTypeForICalls().isPrimitive() -> toUpperCase()
         else -> "OBJECT"
     }

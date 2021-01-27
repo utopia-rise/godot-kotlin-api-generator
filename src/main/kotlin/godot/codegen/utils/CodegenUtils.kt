@@ -14,8 +14,6 @@ fun ClassName.convertIfTypeParameter(): TypeName {
 }
 
 fun FunSpec.Builder.generateJvmMethodCall(
-    method: String,
-    clazz: String,
     engineIndexName: String,
     returnType: String,
     argumentsString: String,
@@ -30,12 +28,20 @@ fun FunSpec.Builder.generateJvmMethodCall(
 
     val shouldReturn = returnType != "Unit"
     if (ktVariantClassNames.isNotEmpty()) {
-        addStatement(
-            "%T.writeArguments($argumentsString" +
-                    "${if (hasVarargs) "*__var_args" else ""})",
-            transferContextClassName,
-            *ktVariantClassNames
-        )
+        if (hasVarargs) {
+            addStatement(
+                "%T.writeArguments($argumentsString *__var_args.map { %T to it }.toTypedArray())",
+                transferContextClassName,
+                *ktVariantClassNames,
+                ClassName("godot.core.VariantType", "ANY")
+            )
+        } else {
+            addStatement(
+                "%T.writeArguments($argumentsString)",
+                transferContextClassName,
+                *ktVariantClassNames
+            )
+        }
     }
 
     val returnTypeVariantTypeClass = if (returnType.isEnum()) {

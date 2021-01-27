@@ -117,8 +117,6 @@ open class Method @JsonCreator constructor(
                 )
             } else {
                 generateJvmMethodCall(
-                    oldName,
-                    clazz.oldName,
                     engineIndexName,
                     returnType,
                     callArgumentsAsString,
