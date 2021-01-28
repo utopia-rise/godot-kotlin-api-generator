@@ -368,14 +368,13 @@ class Class @JsonCreator constructor(
         icalls: MutableSet<ICall>?
     ) {
         (if (isNative) methods else methods.filter { !it.isGetterOrSetter })
-                .forEach { method ->
-                    // FIX API for JVM
-                    val isFreeMethod = newName == "Object" && method.newName == "free"
-                    val shouldGenerate = (!isFreeMethod && !isNative) || isNative
-                    if (shouldGenerate) {
-                        propertiesReceiverType.addFunction(method.generate(this, icalls))
-                    }
-        }
+            .forEach { method ->
+                // FIX API for JVM
+                val shouldGenerate = (!jvmMethodToNotGenerate.contains(method.engineIndexName) && !isNative) || isNative
+                if (shouldGenerate) {
+                    propertiesReceiverType.addFunction(method.generate(this, icalls))
+                }
+            }
     }
 
     private fun generateToVariantMethod(propertiesReceiverType: TypeSpec.Builder) {

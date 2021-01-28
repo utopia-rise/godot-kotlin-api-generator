@@ -11,6 +11,11 @@ import java.io.File
 lateinit var tree: Graph<Class>
 var isNative: Boolean = false
 
+val jvmMethodToNotGenerate = listOf(
+    "ENGINEMETHOD_ENGINECLASS_OBJECT_FREE",
+    "ENGINEMETHOD_ENGINECLASS_INTERPOLATEDCAMERA_SET_TARGET"
+)
+
 fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
     isNative = isNat
     val classes: List<Class> = ObjectMapper().readValue(jsonSource, object : TypeReference<ArrayList<Class>>() {})
@@ -53,11 +58,13 @@ private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
             PropertySpec.builder(clazz.engineIndexName, INT, KModifier.CONST).initializer("%L", classIndex).addModifiers(KModifier.INTERNAL).build()
         )
         clazz.methods.filter { !it.isGetterOrSetter }.forEach { method ->
-            fileSpecBuilder.addProperty(
-                PropertySpec.builder(method.engineIndexName, INT, KModifier.CONST)
-                    .initializer("%L", methodIndex).addModifiers(KModifier.INTERNAL).build()
-            )
-            methodIndex++
+            if (!jvmMethodToNotGenerate.contains(method.engineIndexName)) {
+                fileSpecBuilder.addProperty(
+                    PropertySpec.builder(method.engineIndexName, INT, KModifier.CONST)
+                        .initializer("%L", methodIndex).addModifiers(KModifier.INTERNAL).build()
+                )
+                methodIndex++
+            }
         }
         clazz.properties.forEach { property ->
             if (property.hasValidGetter) {
