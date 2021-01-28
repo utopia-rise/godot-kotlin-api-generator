@@ -56,6 +56,9 @@ class Class @JsonCreator constructor(
         val className = ClassName("godot", newName)
 
         val classTypeBuilder = createTypeBuilder(className)
+        if (!isNative) {
+            classTypeBuilder.addAnnotation(ClassName("godot.annotation", "GodotBaseType"))
+        }
 
         if (newName == "Object") {
             if (isNative) {
