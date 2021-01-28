@@ -60,7 +60,7 @@ fun FunSpec.Builder.generateJvmMethodCall(
     if (shouldReturn) {
         if (returnType.isEnum()) {
             addStatement(
-                "return ${returnType.removeEnumPrefix()}.values()[%T.readReturnValue(%T) as %T]",
+                "return·${returnType.removeEnumPrefix()}.values()[%T.readReturnValue(%T)·as·%T]",
                 transferContextClassName,
                 ClassName("godot.core.VariantType", "JVM_INT"),
                 INT
@@ -75,7 +75,7 @@ fun FunSpec.Builder.generateJvmMethodCall(
                 castClassName = (castClassName as ClassName).parameterizedBy(ANY.copy(true), ANY.copy(true))
             }
             addStatement(
-                "return %T.readReturnValue(%T, %L) as %T",
+                "return·%T.readReturnValue(%T, %L)·as·%T",
                 transferContextClassName,
                 returnTypeVariantTypeClass,
                 isNullableReturn,
