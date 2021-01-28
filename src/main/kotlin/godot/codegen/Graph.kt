@@ -27,7 +27,7 @@ fun List<Class>.buildTree(): Graph<Class> {
     return Graph(this) { child, parent -> child.baseClass == parent.newName }
 }
 
-fun Graph<Class>.getMethodFromAncestor(cl: Class, method: Method): Method? {
+fun Graph<Class>.getMethodFromAncestor(cl: Class, method: Method): Pair<Class, Method>? {
     fun check(m: Method): Boolean {
         if (m.newName == method.newName && m.arguments.size == method.arguments.size) {
             var flag = true
@@ -41,9 +41,9 @@ fun Graph<Class>.getMethodFromAncestor(cl: Class, method: Method): Method? {
         return false
     }
 
-    fun Graph.Node<Class>.findMethodInHierarchy(): Method? {
+    fun Graph.Node<Class>.findMethodInHierarchy(): Pair<Class, Method>? {
         value.methods.forEach {
-            if (check(it)) return it
+            if (check(it)) return value to it
         }
 
         return parent?.findMethodInHierarchy()
@@ -73,7 +73,7 @@ fun Graph<Class>.doAncestorsHaveProperty(cl: Class, prop: Property): Boolean {
 }
 
 fun Graph<Class>.getSanitisedArgumentName(method: Method, index: Int, cl: Class): String {
-    val parentMethod = getMethodFromAncestor(cl, method)
+    val parentMethod = getMethodFromAncestor(cl, method)?.second
     return (parentMethod ?: method).arguments[index].name
 }
 

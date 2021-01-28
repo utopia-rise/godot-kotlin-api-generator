@@ -29,6 +29,31 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
         it.properties.forEach { property -> property.initEngineIndexNames(it.engineIndexName) }
     }
 
+    val methodsToRename = mutableMapOf<Method, String>()
+    classes.forEach { clazz ->
+        clazz.properties.forEach { property ->
+            val method = Method(
+                "get_${property.oldName}",
+                property.type,
+                isVirtual = false,
+                hasVarargs = false,
+                arguments = listOf()
+            )
+            val parentClassAndMethod = tree.getMethodFromAncestor(clazz, method)
+            if (parentClassAndMethod != null && !property.hasValidGetter) {
+                val parentMethodName = "get${parentClassAndMethod.first.newName}${property.newName.capitalize()}"
+                property.parentMethodToCall = parentMethodName
+                val find = parentClassAndMethod.first.methods.find { it.newName == "get${property.newName.capitalize()}" }
+                if (find != null) {
+                    methodsToRename[find] = parentMethodName
+                }
+            }
+        }
+    }
+    methodsToRename.forEach {
+        it.key.newName = it.value
+    }
+
     if (!isNative) generateEngineIndexesFile(classes).writeTo(this)
 
     classes.forEach { clazz ->

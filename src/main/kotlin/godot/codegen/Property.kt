@@ -31,6 +31,8 @@ class Property @JsonCreator constructor(
     lateinit var engineSetterIndexName: String
     lateinit var engineGetterIndexName: String
 
+    var parentMethodToCall: String? = null
+
     init {
         type = type.convertTypeToKotlin()
 
@@ -50,6 +52,10 @@ class Property @JsonCreator constructor(
     fun initEngineIndexNames(engineClassIndexName: String) {
         engineSetterIndexName = "ENGINEMETHOD_${engineClassIndexName}_SET_${oldName.toUpperCase()}"
         engineGetterIndexName = "ENGINEMETHOD_${engineClassIndexName}_GET_${oldName.toUpperCase()}"
+
+        if (engineGetterIndexName == "ENGINEMETHOD_ENGINECLASS_ANIMATIONNODETRANSITION_GET_INPUT_COUNT") {
+            newName = "inputPortsCount"
+        }
     }
 
     fun generate(clazz: Class, icalls: MutableSet<ICall>?): PropertySpec? {
@@ -149,16 +155,26 @@ class Property @JsonCreator constructor(
                 )
             }
         } else {
-            propertySpecBuilder.getter(
-                FunSpec.getterBuilder()
-                    .addStatement(
-                        "%L %T(%S)",
-                        "throw",
-                        UninitializedPropertyAccessException::class,
-                        "Cannot access property $newName: has no getter"
-                    )
-                    .build()
-            )
+            if (parentMethodToCall != null) {
+                propertySpecBuilder.getter(
+                    FunSpec.getterBuilder()
+                        .addStatement(
+                            "return super.$parentMethodToCall()"
+                        )
+                        .build()
+                )
+            } else {
+                propertySpecBuilder.getter(
+                    FunSpec.getterBuilder()
+                        .addStatement(
+                            "%L %T(%S)",
+                            "throw",
+                            UninitializedPropertyAccessException::class,
+                            "Cannot access property $newName: has no getter"
+                        )
+                        .build()
+                )
+            }
         }
 
         return propertySpecBuilder.build()

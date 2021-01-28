@@ -61,11 +61,11 @@ class Class @JsonCreator constructor(
             if (isNative) {
                 generatePointerVariable(classTypeBuilder)
                 generateInitAndDestroy(classTypeBuilder)
-                generateSignalExtensions(classTypeBuilder)
                 generateToVariantMethod(classTypeBuilder)
             } else {
                 classTypeBuilder.superclass(ClassName("godot.core", "KtObject"))
             }
+            generateSignalExtensions(classTypeBuilder)
         }
 
         generateConstructors(classTypeBuilder)
@@ -145,7 +145,11 @@ class Class @JsonCreator constructor(
         for (i in 0..10) {
             if (i != 0) typeVariablesNames.add(TypeVariableName.invoke("A${i - 1}"))
 
-            val signalType = ClassName("godot.core", "Signal$i")
+            val signalType = if (isNative) {
+                ClassName("godot.core", "Signal$i")
+            } else {
+                ClassName("godot.signals", "Signal$i")
+            }
 
             val emitFunBuilder = FunSpec.builder("emit")
 
@@ -190,6 +194,11 @@ class Class @JsonCreator constructor(
             )
 
             val objectType = ClassName("godot", "Object")
+            val arrayType = if (isNative) {
+                ClassName("godot.core", "GodotArray")
+            } else {
+                ClassName("godot.core", "VariantArray")
+            }
             typeBuilder.addFunction(
                 FunSpec.builder("connect")
                     .receiver(signalParameterizedType)
@@ -201,9 +210,11 @@ class Class @JsonCreator constructor(
                                 .build(),
                             ParameterSpec.builder("method", kTypeVariable)
                                 .build(),
-                            ParameterSpec.builder("binds", ClassName("godot.core", "GodotArray")
-                                .parameterizedBy(ANY.copy(nullable = true))
-                                .copy(nullable = true))
+                            ParameterSpec.builder(
+                                "binds", arrayType
+                                    .parameterizedBy(ANY.copy(nullable = true))
+                                    .copy(nullable = true)
+                            )
                                 .defaultValue("null")
                                 .build(),
                             ParameterSpec.builder("flags", Long::class)
