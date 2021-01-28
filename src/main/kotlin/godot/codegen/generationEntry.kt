@@ -129,6 +129,7 @@ private fun generateICallsVarargsFunction(): FunSpec {
 }
 
 private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
+    val registrationFile = FileSpec.builder("godot", "RegisterEngineTypes")
 
     val registerTypesFunBuilder = FunSpec.builder("registerEngineTypes")
 
@@ -138,8 +139,8 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
 
     val registerVariantMappingFunBuilder = FunSpec.builder("registerVariantMapping")
 
-    fun addEngineTypeMethod(classIndexName: String, methodEngineName: String) {
-        registerMethodsFunBuilder.addStatement(
+    fun addEngineTypeMethod(methodForClass: FunSpec.Builder, classIndexName: String, methodEngineName: String) {
+        methodForClass.addStatement(
             "%T.engineTypeMethod.add(%M to \"${methodEngineName}\")",
             ClassName("godot.core", "TypeManager"),
             MemberName("godot", classIndexName)
@@ -182,21 +183,26 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
                 )
             }
             addVariantMapping(clazz.newName)
+
+            val registerMethodForClassFun = FunSpec.builder("registerEngineTypeMethodFor${clazz.newName}")
+            registerMethodForClassFun.addModifiers(KModifier.PRIVATE)
             clazz.methods.filter { !it.isGetterOrSetter }.forEach {
-                addEngineTypeMethod(clazz.engineIndexName, it.oldName)
+                addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.oldName)
             }
             clazz.properties.forEach {
                 if (it.hasValidGetter) {
-                    addEngineTypeMethod(clazz.engineIndexName, it.validGetter.oldName)
+                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.validGetter.oldName)
                 }
                 if (it.hasValidSetter) {
-                    addEngineTypeMethod(clazz.engineIndexName, it.validSetter.oldName)
+                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.validSetter.oldName)
                 }
             }
+            registrationFile.addFunction(registerMethodForClassFun.build())
+            registerMethodsFunBuilder.addStatement("registerEngineTypeMethodFor${clazz.newName}()")
+
         }
     }
-    val registrationFile = FileSpec.builder("godot", "RegisterEngineTypes")
-        .addFunction(
+    registrationFile.addFunction(
             registerTypesFunBuilder.build()
         )
         .addFunction(
