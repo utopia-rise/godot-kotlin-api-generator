@@ -70,8 +70,25 @@ class Class @JsonCreator constructor(
             }
             generateSignalExtensions(classTypeBuilder)
         }
+        if (!isNative && newName == "Reference") {
+            classTypeBuilder.addFunction(
+                FunSpec.builder("____DO_NOT_TOUCH_THIS_isRef____")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addStatement("return true")
+                    .build()
+            )
+        }
 
         generateConstructors(classTypeBuilder)
+
+        if (!isNative && isSingleton) {
+            classTypeBuilder.addFunction(
+                FunSpec.builder("____DO_NOT_TOUCH_THIS_isSingleton____")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addStatement("return true")
+                    .build()
+            )
+        }
 
         generateEnums(classTypeBuilder)
 
@@ -202,39 +219,48 @@ class Class @JsonCreator constructor(
             } else {
                 ClassName("godot.core", "VariantArray")
             }
-            typeBuilder.addFunction(
-                FunSpec.builder("connect")
-                    .receiver(signalParameterizedType)
-                    .addTypeVariables(connectTypeVariableNames)
-                    .addModifiers(KModifier.INLINE)
-                    .addParameters(
-                        listOf(
-                            ParameterSpec.builder("target", objectType)
-                                .build(),
-                            ParameterSpec.builder("method", kTypeVariable)
-                                .build(),
-                            ParameterSpec.builder(
-                                "binds", arrayType
-                                    .parameterizedBy(ANY.copy(nullable = true))
-                                    .copy(nullable = true)
-                            )
-                                .defaultValue("null")
-                                .build(),
-                            ParameterSpec.builder("flags", Long::class)
-                                .defaultValue("0")
-                                .build()
+            val connectFun = FunSpec.builder("connect")
+                .receiver(signalParameterizedType)
+                .addTypeVariables(connectTypeVariableNames)
+                .addModifiers(KModifier.INLINE)
+                .addParameters(
+                    listOf(
+                        ParameterSpec.builder("target", objectType)
+                            .build(),
+                        ParameterSpec.builder("method", kTypeVariable)
+                            .build(),
+                        ParameterSpec.builder(
+                            "binds", arrayType
+                                .parameterizedBy(ANY.copy(nullable = true))
+                                .copy(nullable = true)
                         )
+                            .defaultValue("null")
+                            .build(),
+                        ParameterSpec.builder("flags", Long::class)
+                            .defaultValue("0")
+                            .build()
                     )
-                    .addCode("""
+                )
+            if (isNative) {
+                connectFun.addCode("""
                             |val methodName = (method as %T<%T>).name
                             |connect(this@%T, target, methodName, binds, flags)
                             |""".trimMargin(),
-                        ClassName("kotlin.reflect", "KCallable"),
-                        UNIT,
-                        objectType
-                    )
-                    .build()
-            )
+                    ClassName("kotlin.reflect", "KCallable"),
+                    UNIT,
+                    objectType
+                )
+            } else {
+                connectFun.addCode("""
+                            |val methodName = (method as %T<*>).name.%M()
+                            |connect(this@%T, target, methodName, binds, flags)
+                            |""".trimMargin(),
+                    ClassName("kotlin.reflect", "KCallable"),
+                    MemberName("godot.util", "camelToSnakeCase"),
+                    objectType
+                )
+            }
+            typeBuilder.addFunction(connectFun.build())
         }
     }
 

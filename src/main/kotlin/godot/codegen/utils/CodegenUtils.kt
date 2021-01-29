@@ -27,21 +27,19 @@ fun FunSpec.Builder.generateJvmMethodCall(
     val transferContextClassName = ClassName("godot.core", "TransferContext")
 
     val shouldReturn = returnType != "Unit"
-    if (ktVariantClassNames.isNotEmpty()) {
-        if (hasVarargs) {
-            addStatement(
-                "%T.writeArguments($argumentsString *__var_args.map { %T to it }.toTypedArray())",
-                transferContextClassName,
-                *ktVariantClassNames,
-                ClassName("godot.core.VariantType", "ANY")
-            )
-        } else {
-            addStatement(
-                "%T.writeArguments($argumentsString)",
-                transferContextClassName,
-                *ktVariantClassNames
-            )
-        }
+    if (hasVarargs) {
+        addStatement(
+            "%T.writeArguments($argumentsString *__var_args.map { %T to it }.toTypedArray())",
+            transferContextClassName,
+            *ktVariantClassNames,
+            ClassName("godot.core.VariantType", "ANY")
+        )
+    } else {
+        addStatement(
+            "%T.writeArguments($argumentsString)",
+            transferContextClassName,
+            *ktVariantClassNames
+        )
     }
 
     val returnTypeVariantTypeClass = if (returnType.isEnum()) {

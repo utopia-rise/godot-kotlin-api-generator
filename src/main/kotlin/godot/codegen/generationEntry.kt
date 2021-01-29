@@ -143,7 +143,7 @@ private fun generateICallsVarargsFunction(): FunSpec {
             MemberName("godot.internal.utils", "godotScoped"),
             ClassName("kotlinx.cinterop", "CPointerVar"),
             MemberName("godot.gdnative", "godot_variant"),
-            ClassName("godot.core", "Variant"),
+            ClassName("godot.core", "VarianRt"),
             ClassName("godot.core", "Godot"),
             MemberName("kotlinx.cinterop", "invoke"),
             ClassName("godot.core", "Godot"),
@@ -212,7 +212,9 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
             val registerMethodForClassFun = FunSpec.builder("registerEngineTypeMethodFor${clazz.newName}")
             registerMethodForClassFun.addModifiers(KModifier.PRIVATE)
             clazz.methods.filter { !it.isGetterOrSetter }.forEach {
-                addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.oldName)
+                if (!jvmMethodToNotGenerate.contains(it.engineIndexName)) {
+                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.oldName)
+                }
             }
             clazz.properties.forEach {
                 if (it.hasValidGetter) {
