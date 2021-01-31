@@ -27,8 +27,8 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
 
     classes.forEach {
         it.initClass()
-        it.methods.forEach { method -> method.initEngineIndex(it.engineIndexName) }
-        it.properties.forEach { property -> property.initEngineIndexNames(it.engineIndexName) }
+        it.methods.forEach { method -> method.initEngineIndex(it.engineClassDBIndexName) }
+        it.properties.forEach { property -> property.initEngineIndexNames(it.engineClassDBIndexName) }
     }
 
     val methodsToRename = mutableMapOf<Method, String>()
@@ -80,10 +80,19 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
 private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
     val fileSpecBuilder = FileSpec.builder("godot", "EngineIndexes")
     var methodIndex = 0
+    var singletonIndex = 0
     classes.filter { it.shouldGenerate }.forEachIndexed { classIndex, clazz ->
         fileSpecBuilder.addProperty(
-            PropertySpec.builder(clazz.engineIndexName, INT, KModifier.CONST).initializer("%L", classIndex).addModifiers(KModifier.INTERNAL).build()
+            PropertySpec.builder(clazz.engineClassDBIndexName, INT, KModifier.CONST).initializer("%L", classIndex).addModifiers(KModifier.INTERNAL).build()
         )
+
+        if (clazz.isSingleton) {
+            fileSpecBuilder.addProperty(
+                PropertySpec.builder(clazz.engineSingletonIndexName!!, INT, KModifier.CONST).initializer("%L", singletonIndex).addModifiers(KModifier.INTERNAL).build()
+            )
+            singletonIndex++
+        }
+
         clazz.methods.filter { !it.isGetterOrSetter }.forEach { method ->
             if (!jvmMethodToNotGenerate.contains(method.engineIndexName)) {
                 fileSpecBuilder.addProperty(
@@ -190,7 +199,7 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
         if (isNative) {
             registerTypesFunBuilder.addStatement(
                 "registerEngineType(%S, ::%T)",
-                clazz.newName,
+                clazz.oldName,
                 ClassName(clazz.newName.getPackage(), clazz.newName)
             )
         } else {
@@ -198,14 +207,19 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
                 registerTypesFunBuilder.addStatement(
                     "%T.registerEngineType(%S) { %T }",
                     ClassName("godot.core", "TypeManager"),
-                    clazz.newName,
+                    clazz.oldName,
                     ClassName(clazz.newName.getPackage(), clazz.newName)
+                )
+                registerTypesFunBuilder.addStatement(
+                    "%T.registerSingleton(%S)",
+                    ClassName("godot.core", "TypeManager"),
+                    clazz.newName
                 )
             } else {
                 registerTypesFunBuilder.addStatement(
                     "%T.registerEngineType(%S, ::%T)",
                     ClassName("godot.core", "TypeManager"),
-                    clazz.newName,
+                    clazz.oldName,
                     ClassName(clazz.newName.getPackage(), clazz.newName)
                 )
             }
@@ -215,15 +229,15 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
             registerMethodForClassFun.addModifiers(KModifier.PRIVATE)
             clazz.methods.filter { !it.isGetterOrSetter }.forEach {
                 if (!jvmMethodToNotGenerate.contains(it.engineIndexName)) {
-                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.oldName)
+                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineClassDBIndexName, it.oldName)
                 }
             }
             clazz.properties.forEach {
                 if (it.hasValidGetter) {
-                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.validGetter.oldName)
+                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineClassDBIndexName, it.validGetter.oldName)
                 }
                 if (it.hasValidSetter) {
-                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineIndexName, it.validSetter.oldName)
+                    addEngineTypeMethod(registerMethodForClassFun, clazz.engineClassDBIndexName, it.validSetter.oldName)
                 }
             }
             registrationFile.addFunction(registerMethodForClassFun.build())

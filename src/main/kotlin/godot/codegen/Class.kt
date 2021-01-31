@@ -36,7 +36,8 @@ class Class @JsonCreator constructor(
 ) {
 
     val newName: String = oldName.escapeUnderscore()
-    val engineIndexName = "ENGINECLASS_${oldName.toUpperCase()}"
+    val engineClassDBIndexName = "ENGINECLASS_${oldName.toUpperCase()}"
+    val engineSingletonIndexName: String? = if (isSingleton) "ENGINESINGLETON_${newName.toUpperCase()}" else null
     var shouldGenerate: Boolean = true
     val additionalImports = mutableListOf<Pair<String, String>>()
 
@@ -317,18 +318,31 @@ class Class @JsonCreator constructor(
                 ).addSuperclassConstructorParameter("_ignore")
             }
         } else {
-            val functionToCall = if (isSingleton) "getSingleton" else "invokeConstructor"
-            typeBuilder.addFunction(
+            if (isSingleton) {
+                typeBuilder.addFunction(
                     FunSpec.builder("__new")
-                            .addModifiers(KModifier.OVERRIDE)
-                            .returns(ClassName("godot.util", "VoidPtr"))
-                            .addStatement(
-                                    "return %T.$functionToCall(%M)",
-                                    ClassName("godot.core", "TransferContext"),
-                                    MemberName("godot", engineIndexName)
-                            )
-                            .build()
-            )
+                        .addModifiers(KModifier.OVERRIDE)
+                        .returns(ClassName("godot.util", "VoidPtr"))
+                        .addStatement(
+                            "return %T.getSingleton(%M)",
+                            ClassName("godot.core", "TransferContext"),
+                            MemberName("godot", engineSingletonIndexName!!)
+                        )
+                        .build()
+                )
+            } else {
+                typeBuilder.addFunction(
+                    FunSpec.builder("__new")
+                        .addModifiers(KModifier.OVERRIDE)
+                        .returns(ClassName("godot.util", "VoidPtr"))
+                        .addStatement(
+                            "return %T.invokeConstructor(%M)",
+                            ClassName("godot.core", "TransferContext"),
+                            MemberName("godot", engineClassDBIndexName)
+                        )
+                        .build()
+                )
+            }
         }
     }
 
