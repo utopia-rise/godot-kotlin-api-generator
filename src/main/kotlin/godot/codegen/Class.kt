@@ -114,6 +114,7 @@ class Class @JsonCreator constructor(
         generateSuppressWarnings(fileBuilder)
 
         fileBuilder
+            .addComment(GENERATED_COMMENT)
             .build()
             .writeTo(outputDir)
     }

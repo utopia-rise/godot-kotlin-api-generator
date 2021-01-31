@@ -8,6 +8,8 @@ import godot.codegen.utils.getPackage
 import godot.codegen.utils.jvmVariantTypeValue
 import java.io.File
 
+const val GENERATED_COMMENT = "THIS FILE IS GENERATED! DO NOT EDIT IT MANUALLY!"
+
 lateinit var tree: Graph<Class>
 var isNative: Boolean = false
 
@@ -70,7 +72,7 @@ fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
 
     this.parentFile.mkdirs()
 
-    iCallFileSpec?.build()?.writeTo(this)
+    iCallFileSpec?.addComment(GENERATED_COMMENT)?.build()?.writeTo(this)
 
     generateEngineTypesRegistration(classes).writeTo(this)
 }
@@ -110,7 +112,7 @@ private fun generateEngineIndexesFile(classes: List<Class>): FileSpec {
         }
     }
 
-    return fileSpecBuilder.build()
+    return fileSpecBuilder.addComment(GENERATED_COMMENT).build()
 }
 
 private fun generateICallsVarargsFunction(): FunSpec {
@@ -238,5 +240,5 @@ private fun generateEngineTypesRegistration(classes: List<Class>): FileSpec {
 
     if (!isNative) registrationFile.addFunction(registerMethodsFunBuilder.build())
 
-    return registrationFile.build()
+    return registrationFile.addComment(GENERATED_COMMENT).build()
 }
