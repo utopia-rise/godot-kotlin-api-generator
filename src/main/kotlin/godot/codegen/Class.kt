@@ -92,15 +92,16 @@ class Class @JsonCreator constructor(
 
         generateEnums(classTypeBuilder)
 
-        val baseCompanion = if (!isSingleton) TypeSpec.companionObjectBuilder() else null
+        val baseCompanion = if (!isSingleton && constants.isNotEmpty()) TypeSpec.companionObjectBuilder() else null
 
         generateConstants(baseCompanion ?: classTypeBuilder)
+
+        baseCompanion?.build()?.let { classTypeBuilder.addType(it) }
 
         generateSignals(classTypeBuilder)
         generateProperties(icalls, classTypeBuilder)
         generateMethods(classTypeBuilder, icalls)
 
-        baseCompanion?.build()?.let { classTypeBuilder.addType(it) }
 
         //Build Type and create file
         val fileBuilder = FileSpec
