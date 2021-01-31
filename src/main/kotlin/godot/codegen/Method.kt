@@ -150,12 +150,12 @@ open class Method @JsonCreator constructor(
 
                 if (shouldAddComa) append(", ")
 
-                val sanitisedName = tree.getSanitisedArgumentName(this@Method, index, cl)
+                val sanitisedArgumentName = tree.getSanitisedArgumentName(this@Method, index, cl)
                 if (isNative) {
-                    append(sanitisedName)
+                    append(sanitisedArgumentName)
                     if (argument.type.isEnum()) append(".id")
                 } else {
-                    append("%T to $sanitisedName")
+                    append("%T to $sanitisedArgumentName")
                     if (argument.type.isEnum()) append(".id")
                 }
 
@@ -166,7 +166,7 @@ open class Method @JsonCreator constructor(
                     argument.type.removeEnumPrefix()
                 )
                 val parameterBuilder = ParameterSpec.builder(
-                    argument.name,
+                    sanitisedArgumentName,
                     baseClassName.convertIfTypeParameter().copy(nullable = argument.nullable)
                 )
 

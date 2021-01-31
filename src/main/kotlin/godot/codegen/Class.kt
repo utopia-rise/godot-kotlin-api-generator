@@ -111,6 +111,8 @@ class Class @JsonCreator constructor(
             fileBuilder.addImport(it.first, it.second)
         }
 
+        generateSuppressWarnings(fileBuilder)
+
         fileBuilder
             .build()
             .writeTo(outputDir)
@@ -423,6 +425,15 @@ class Class @JsonCreator constructor(
             FunSpec.builder("toVariant")
                 .returns(variantType)
                 .addStatement("return %T(this)", variantType)
+                .build()
+        )
+    }
+
+    private fun generateSuppressWarnings(fileBuilder: FileSpec.Builder) {
+        fileBuilder.addAnnotation(
+            AnnotationSpec.builder(ClassName("kotlin", "Suppress"))
+                .addMember("\"PackageDirectoryMismatch\", \"unused\", \"FunctionName\", \"RedundantModalityModifier\", " +
+                        "\"UNCHECKED_CAST\", \"JoinDeclarationAndAssignment\", \"USELESS_CAST\", \"RemoveRedundantQualifierName\"")
                 .build()
         )
     }
