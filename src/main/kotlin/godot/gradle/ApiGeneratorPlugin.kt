@@ -9,11 +9,12 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.property
 
 open class ApiGeneratorPluginExtension(objects: ObjectFactory) {
     var outputDir = objects.directoryProperty()
     var sourceJson = objects.fileProperty()
-    var isNative = false
+    var isNative = objects.property<Boolean>()
 }
 
 open class GenerateAPI : DefaultTask() {
@@ -23,23 +24,26 @@ open class GenerateAPI : DefaultTask() {
     @InputFile
     val sourceJson = project.objects.fileProperty()
 
-    var isNative = false
+    var isNative = project.objects.property<Boolean>()
 
     @TaskAction
     fun execute() {
         val output = outputDir.get().asFile
         output.deleteRecursively()
-        output.generateApiFrom(sourceJson.get().asFile, isNative)
+        output.generateApiFrom(sourceJson.get().asFile, isNative.get())
     }
 }
 
 class ApiGeneratorPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        val extension = project.extensions.create<ApiGeneratorPluginExtension>("ApiGenerator")
+        val extension = project.extensions.create<ApiGeneratorPluginExtension>("apiGenerator")
         project.tasks.register("generateAPI", GenerateAPI::class.java) {
             outputDir.set(extension.outputDir)
             sourceJson.set(extension.sourceJson)
-            isNative = extension.isNative
+            isNative.set(extension.isNative)
+
+            group = "godot-jvm"
+            description = "Generate Godot's classes from its api."
         }
     }
 }
