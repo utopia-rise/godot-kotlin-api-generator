@@ -258,11 +258,10 @@ class Class @JsonCreator constructor(
             } else {
                 connectFun.addCode("""
                             |val methodName = (method as %T<*>).name.%M()
-                            |connect(this@%T, target, methodName, binds, flags)
+                            |connect(target, methodName, binds, flags)
                             |""".trimMargin(),
                     ClassName("kotlin.reflect", "KCallable"),
-                    MemberName("godot.util", "camelToSnakeCase"),
-                    objectType
+                    MemberName("godot.util", "camelToSnakeCase")
                 )
             }
             typeBuilder.addFunction(connectFun.build())
