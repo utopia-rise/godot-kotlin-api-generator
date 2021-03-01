@@ -280,7 +280,7 @@ class Class @JsonCreator constructor(
                             |    this@$newName.ptr = ptr
                             |}
                             |""".trimMargin(),
-                                MemberName("godot.internal.ch.hippmann.darkpoly.utils", "godotScoped"),
+                                MemberName("godot.internal.utils", "godotScoped"),
                                 MemberName("godot.internal.type", "nullSafe"),
                                 ClassName("godot.core", "Godot"),
                                 MemberName("kotlinx.cinterop", "invoke"),
@@ -303,7 +303,7 @@ class Class @JsonCreator constructor(
                    |}
                    |""".trimMargin(),
                                     MemberName(ClassName("godot.core", "Godot"), "shouldInitPtr"),
-                                    MemberName("godot.internal.ch.hippmann.darkpoly.utils", "getConstructor")
+                                    MemberName("godot.internal.utils", "getConstructor")
                             )
                 }
 
