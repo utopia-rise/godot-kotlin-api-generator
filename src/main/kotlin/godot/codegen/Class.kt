@@ -79,6 +79,9 @@ class Class @JsonCreator constructor(
                     .build()
             )
         }
+        if (newName == "Node") {
+            generateTypesafeRpc(classTypeBuilder)
+        }
 
         generateConstructors(classTypeBuilder)
 
@@ -265,6 +268,102 @@ class Class @JsonCreator constructor(
                 )
             }
             typeBuilder.addFunction(connectFun.build())
+        }
+    }
+
+    enum class RpcFunctionMode(val functionName: String, val hasId: Boolean) {
+        RPC("rpc", false),
+        RPC_ID("rpcId", true),
+        RPC_UNRELIABLE("rpcUnreliable", false),
+        RPC_UNRELIABLE_ID("rpcUnreliableId", true)
+    }
+    enum class RpcPropertyMode(val functionName: String, val hasId: Boolean) {
+        RSET("rset", false),
+        RSET_ID("rsetId", true),
+        RSET_UNRELIABLE("rsetUnreliable", false),
+        RSET_UNRELIABLE_ID("rsetUnreliableId", true)
+    }
+    private fun generateTypesafeRpc(typeBuilder: TypeSpec.Builder) {
+        val camelToSnakeCaseUtilFunction = MemberName("godot.util", "camelToSnakeCase")
+        val nodeClassName = ClassName("godot", "Node")
+        for (i in 0..10) {
+            val kFunctionTypeParameters = mutableListOf<TypeVariableName>()
+            if (i != 0) {
+                for (argIndex in 0 until i) {
+                    kFunctionTypeParameters.add(TypeVariableName.invoke("ARG$argIndex"))
+                }
+            }
+
+            val kFunctionClassName = ClassName("kotlin.reflect", "KFunction$i")
+                .parameterizedBy(*kFunctionTypeParameters.toTypedArray(), TypeVariableName.invoke("*"))
+
+            RpcFunctionMode.values().forEach { rpcFunctionMode ->
+                val rpcFunSpec = FunSpec
+                    .builder(rpcFunctionMode.functionName)
+                    .addModifiers(KModifier.INLINE)
+
+                if (rpcFunctionMode.hasId) {
+                    rpcFunSpec.addParameter("id", Long::class.asClassName())
+                }
+
+                rpcFunSpec.addParameter("function", TypeVariableName.invoke("FUNCTION"))
+
+                var templateString = "return ${rpcFunctionMode.functionName}("
+
+                if (rpcFunctionMode.hasId) {
+                    templateString += "id, "
+                }
+
+                templateString += "function.name.%M()"
+
+                kFunctionTypeParameters.forEachIndexed { index, typeVariableName ->
+                    rpcFunSpec.addTypeVariable(typeVariableName)
+                    val argParamName = "arg$index"
+                    rpcFunSpec.addParameter(argParamName, typeVariableName)
+                    templateString += ", $argParamName"
+                }
+                templateString += ")"
+                rpcFunSpec.addStatement(templateString, camelToSnakeCaseUtilFunction)
+
+                rpcFunSpec.addTypeVariable(TypeVariableName.invoke("FUNCTION", kFunctionClassName).copy(reified = true))
+                typeBuilder.addFunction(rpcFunSpec.build())
+            }
+        }
+
+        RpcPropertyMode.values().forEach { rpcPropertyMode ->
+            val kMutablePropertyClassName = ClassName("kotlin.reflect", "KMutableProperty")
+                .parameterizedBy(TypeVariableName.Companion.invoke("TYPE"))
+
+            val rpcFunSpec = FunSpec
+                .builder(rpcPropertyMode.functionName)
+                .addModifiers(KModifier.INLINE)
+                .addTypeVariables(
+                    listOf(
+                        TypeVariableName.invoke("TYPE"),
+                        TypeVariableName.invoke("PROPERTY", kMutablePropertyClassName).copy(reified = true)
+                    )
+                )
+
+            if (rpcPropertyMode.hasId) {
+                rpcFunSpec.addParameter("id", Long::class.asClassName())
+            }
+
+            with(rpcFunSpec) {
+                addParameter("property", TypeVariableName.invoke("PROPERTY"))
+                addParameter("value", TypeVariableName.invoke("TYPE"))
+
+                val templateString = buildString {
+                    append("return ${rpcPropertyMode.functionName}(")
+                    if (rpcPropertyMode.hasId) {
+                        append("id, ")
+                    }
+                    append("property.name.%M(), value)")
+                }
+
+                addStatement(templateString, camelToSnakeCaseUtilFunction)
+            }
+
+            typeBuilder.addFunction(rpcFunSpec.build())
         }
     }
 
