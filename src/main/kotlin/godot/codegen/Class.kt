@@ -228,6 +228,7 @@ class Class @JsonCreator constructor(
                 .receiver(signalParameterizedType)
                 .addTypeVariables(connectTypeVariableNames)
                 .addModifiers(KModifier.INLINE)
+                .returns(ClassName("godot.core", "GodotError"))
                 .addParameters(
                     listOf(
                         ParameterSpec.builder("target", objectType)
@@ -249,7 +250,7 @@ class Class @JsonCreator constructor(
             if (isNative) {
                 connectFun.addCode("""
                             |val methodName = (method as %T<%T>).name
-                            |connect(this@%T, target, methodName, binds, flags)
+                            |return connect(this@%T, target, methodName, binds, flags)
                             |""".trimMargin(),
                     ClassName("kotlin.reflect", "KCallable"),
                     UNIT,
@@ -258,7 +259,7 @@ class Class @JsonCreator constructor(
             } else {
                 connectFun.addCode("""
                             |val methodName = (method as %T<*>).name.%M()
-                            |connect(target, methodName, binds, flags)
+                            |return connect(target, methodName, binds, flags)
                             |""".trimMargin(),
                     ClassName("kotlin.reflect", "KCallable"),
                     MemberName("godot.util", "camelToSnakeCase")
