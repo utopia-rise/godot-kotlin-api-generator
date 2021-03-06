@@ -367,14 +367,14 @@ class Class @JsonCreator constructor(
 
     private fun generateEnums(typeBuilder: TypeSpec.Builder) {
         enums.forEach {
-            typeBuilder.addType(it.generate(oldName))
+            typeBuilder.addType(it.generate(newName))
         }
     }
 
     private fun generateSignals(typeBuilder: TypeSpec.Builder) {
         signals.forEach {
             if (properties.map { p -> p.newName }.contains(it.name)) it.name = "signal${it.name.capitalize()}"
-            typeBuilder.addProperty(it.generate(oldName))
+            typeBuilder.addProperty(it.generate(newName))
         }
     }
 
