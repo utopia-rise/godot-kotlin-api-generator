@@ -177,6 +177,11 @@ class Property @JsonCreator constructor(
             }
         }
 
+        val kDoc = classDocs[clazz.newName]?.properties?.get(oldName)?.description
+        if (kDoc != null) {
+            propertySpecBuilder.addKdoc("%L", kDoc)
+        }
+
         return propertySpecBuilder.build()
     }
 
