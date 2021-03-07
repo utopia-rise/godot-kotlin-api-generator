@@ -30,9 +30,7 @@ class Argument @JsonCreator constructor(
         if (defaultValue == "[Object:null]" || defaultValue == "Null") {
             defaultValue = "null"
             nullable = true
-        } else {
-            nullable = false
-        }
+        } else nullable = type == "Any"
 
         applyDefault = if (hasDefaultValue && nullable) {
             "null"
