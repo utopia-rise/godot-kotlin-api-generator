@@ -6,19 +6,23 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import godot.codegen.utils.getPackage
 import godot.codegen.utils.jvmVariantTypeValue
+import godot.docgen.ClassDoc
+import godot.docgen.DocGen
 import java.io.File
 
 const val GENERATED_COMMENT = "THIS FILE IS GENERATED! DO NOT EDIT IT MANUALLY!"
 
 lateinit var tree: Graph<Class>
 var isNative: Boolean = false
+var classDocs: Map<String, ClassDoc> = mapOf()
 
 val jvmMethodToNotGenerate = listOf(
     "ENGINEMETHOD_ENGINECLASS_OBJECT_FREE",
     "ENGINEMETHOD_ENGINECLASS_INTERPOLATEDCAMERA_SET_TARGET"
 )
 
-fun File.generateApiFrom(jsonSource: File, isNat: Boolean) {
+fun File.generateApiFrom(jsonSource: File, isNat: Boolean, docsDir: File? = null) {
+    classDocs = docsDir?.let { DocGen.deserializeDoc(it) } ?: mapOf()
     isNative = isNat
     val classes: List<Class> = ObjectMapper().readValue(jsonSource, object : TypeReference<ArrayList<Class>>() {})
 

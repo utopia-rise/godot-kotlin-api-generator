@@ -57,6 +57,25 @@ class Class @JsonCreator constructor(
         val className = ClassName("godot", newName)
 
         val classTypeBuilder = createTypeBuilder(className)
+
+        classDocs[newName]?.let { classDoc ->
+            classTypeBuilder.addKdoc(
+                "%L",
+                buildString {
+                    appendln(classDoc.briefDescription)
+                    appendln()
+                    if (classDoc.tutorialLinks.isNotEmpty()) {
+                        appendln("Tutorials:")
+                        classDoc.tutorialLinks.forEach {
+                            appendln("[$it]($it)")
+                        }
+                        appendln()
+                    }
+                    appendln(classDoc.description)
+                }
+            )
+        }
+
         if (!isNative) {
             classTypeBuilder.addAnnotation(ClassName("godot.annotation", "GodotBaseType"))
         }
@@ -447,14 +466,14 @@ class Class @JsonCreator constructor(
 
     private fun generateEnums(typeBuilder: TypeSpec.Builder) {
         enums.forEach {
-            typeBuilder.addType(it.generated)
+            typeBuilder.addType(it.generate(newName))
         }
     }
 
     private fun generateSignals(typeBuilder: TypeSpec.Builder) {
         signals.forEach {
             if (properties.map { p -> p.newName }.contains(it.name)) it.name = "signal${it.name.capitalize()}"
-            typeBuilder.addProperty(it.generated)
+            typeBuilder.addProperty(it.generate(newName))
         }
     }
 
@@ -465,6 +484,13 @@ class Class @JsonCreator constructor(
                     .builder(key, Long::class)
                     .addModifiers(KModifier.CONST, KModifier.FINAL)
                     .initializer("%L", value)
+                    .also {
+                        val kDoc = classDocs[newName]?.constants?.get(key)?.description
+                            ?: classDocs["@GlobalScope"]?.constants?.get(key)?.description
+                        if (kDoc != null) {
+                            it.addKdoc("%L", kDoc)
+                        }
+                    }
                     .build()
             )
         }

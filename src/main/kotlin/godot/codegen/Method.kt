@@ -84,6 +84,11 @@ open class Method @JsonCreator constructor(
 
         generatedFunBuilder.generateCodeBlock(clazz, callArgumentsAsString, icalls, shouldReturn)
 
+        val kDoc = classDocs[clazz.newName]?.functions?.get(oldName)?.description
+        if (kDoc != null) {
+            generatedFunBuilder.addKdoc("%L", kDoc)
+        }
+
         return generatedFunBuilder.build()
     }
 

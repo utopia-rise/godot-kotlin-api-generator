@@ -23,39 +23,42 @@ class Signal @JsonCreator constructor(
     val arguments: List<SignalArgument>
 ) {
 
-    val generated: PropertySpec
-        get() {
-            val builder = if (arguments.isEmpty()) {
-                PropertySpec
-                    .builder(
-                        name.convertToCamelCase().escapeKotlinReservedNames(),
-                        ClassName(signalPackage, "Signal0")
-                    )
-                    .delegate(
-                        "%M()",
-                        MemberName(signalPackage, "signal")
-                    )
-            } else {
-                PropertySpec
-                    .builder(
-                        name.convertToCamelCase().escapeKotlinReservedNames(),
-                        ClassName(signalPackage, "Signal${arguments.size}")
-                            .parameterizedBy(
-                                *arguments
-                                    .map {
-                                        ClassName(it.type.getPackage(), it.type).convertIfTypeParameter()
-                                    }
-                                    .toTypedArray()
-                            )
-                    )
-                    .delegate("%M(${
-                        arguments
-                            .map { "\"${it.name}\"" + if (it != arguments.last()) ", " else "" }
-                            .reduce { acc, s -> acc + s }
-                    })",
-                        MemberName(signalPackage, "signal")
-                    )
-            }
-            return builder.build()
+    fun generate(className: String): PropertySpec {
+        val builder = if (arguments.isEmpty()) {
+            PropertySpec
+                .builder(
+                    name.convertToCamelCase().escapeKotlinReservedNames(),
+                    ClassName(signalPackage, "Signal0")
+                )
+                .delegate(
+                    "%M()",
+                    MemberName(signalPackage, "signal")
+                )
+        } else {
+            PropertySpec
+                .builder(
+                    name.convertToCamelCase().escapeKotlinReservedNames(),
+                    ClassName(signalPackage, "Signal${arguments.size}")
+                        .parameterizedBy(
+                            *arguments
+                                .map {
+                                    ClassName(it.type.getPackage(), it.type).convertIfTypeParameter()
+                                }
+                                .toTypedArray()
+                        )
+                )
+                .delegate("%M(${
+                    arguments
+                        .map { "\"${it.name}\"" + if (it != arguments.last()) ", " else "" }
+                        .reduce { acc, s -> acc + s }
+                })",
+                    MemberName(signalPackage, "signal")
+                )
         }
+        val kDoc = classDocs[className]?.signals?.get(name)?.description
+        if (kDoc != null) {
+            builder.addKdoc("%L", kDoc)
+        }
+        return builder.build()
+    }
 }
