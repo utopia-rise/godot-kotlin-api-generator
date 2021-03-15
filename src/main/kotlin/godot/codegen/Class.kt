@@ -442,7 +442,7 @@ class Class @JsonCreator constructor(
                         .addStatement(
                             "rawPtr = buffer.long")
                         .addStatement(
-                            "id = buffer.long")
+                            "__id = buffer.long")
                         .addStatement(
                             "buffer.rewind()")
                         .build()
