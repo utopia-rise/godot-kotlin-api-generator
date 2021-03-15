@@ -421,9 +421,8 @@ class Class @JsonCreator constructor(
                 typeBuilder.addFunction(
                     FunSpec.builder("__new")
                         .addModifiers(KModifier.OVERRIDE)
-                        .returns(ClassName("godot.util", "VoidPtr"))
                         .addStatement(
-                            "return %T.getSingleton(%M)",
+                            "rawPtr = %T.getSingleton(%M)",
                             ClassName("godot.core", "TransferContext"),
                             MemberName("godot", engineSingletonIndexName!!)
                         )
@@ -433,12 +432,19 @@ class Class @JsonCreator constructor(
                 typeBuilder.addFunction(
                     FunSpec.builder("__new")
                         .addModifiers(KModifier.OVERRIDE)
-                        .returns(ClassName("godot.util", "VoidPtr"))
                         .addStatement(
-                            "return %T.invokeConstructor(%M)",
+                            "%T.invokeConstructor(%M)",
                             ClassName("godot.core", "TransferContext"),
                             MemberName("godot", engineClassDBIndexName)
                         )
+                        .addStatement(
+                            "val buffer = TransferContext.buffer")
+                        .addStatement(
+                            "rawPtr = buffer.long")
+                        .addStatement(
+                            "id = buffer.long")
+                        .addStatement(
+                            "buffer.rewind()")
                         .build()
                 )
             }
