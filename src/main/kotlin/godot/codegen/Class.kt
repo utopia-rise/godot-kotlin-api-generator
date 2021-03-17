@@ -69,6 +69,7 @@ class Class @JsonCreator constructor(
             } else {
                 classTypeBuilder.superclass(ClassName("godot.core", "KtObject"))
             }
+            generateConstructorMethod(classTypeBuilder)
             generateSignalExtensions(classTypeBuilder)
         }
         if (!isNative && newName == "Reference") {
@@ -162,6 +163,29 @@ class Class @JsonCreator constructor(
             )
         )
     }
+
+    private fun generateConstructorMethod(typeBuilder: TypeSpec.Builder) {
+        val constructorFun = FunSpec.builder("callConstructor")
+            .addModifiers(KModifier.INLINE)
+            .addModifiers(KModifier.INTERNAL)
+            .addParameter(
+                ParameterSpec.builder("classIndex", Int::class)
+                    .build())
+            .addStatement(
+                "%T.invokeConstructor(classIndex)",
+                ClassName("godot.core", "TransferContext")
+            )
+            .addStatement(
+                "val buffer = TransferContext.buffer")
+            .addStatement(
+                "rawPtr = buffer.long")
+            .addStatement(
+                "__id = buffer.long")
+            .addStatement(
+                "buffer.rewind()")
+        typeBuilder.addFunction(constructorFun.build())
+    }
+
 
     private fun generateSignalExtensions(typeBuilder: TypeSpec.Builder) {
 
@@ -433,18 +457,9 @@ class Class @JsonCreator constructor(
                     FunSpec.builder("__new")
                         .addModifiers(KModifier.OVERRIDE)
                         .addStatement(
-                            "%T.invokeConstructor(%M)",
-                            ClassName("godot.core", "TransferContext"),
+                            "callConstructor(%M)",
                             MemberName("godot", engineClassDBIndexName)
                         )
-                        .addStatement(
-                            "val buffer = TransferContext.buffer")
-                        .addStatement(
-                            "rawPtr = buffer.long")
-                        .addStatement(
-                            "__id = buffer.long")
-                        .addStatement(
-                            "buffer.rewind()")
                         .build()
                 )
             }
@@ -554,7 +569,8 @@ class Class @JsonCreator constructor(
         fileBuilder.addAnnotation(
             AnnotationSpec.builder(ClassName("kotlin", "Suppress"))
                 .addMember("\"PackageDirectoryMismatch\", \"unused\", \"FunctionName\", \"RedundantModalityModifier\", " +
-                        "\"UNCHECKED_CAST\", \"JoinDeclarationAndAssignment\", \"USELESS_CAST\", \"RemoveRedundantQualifierName\"")
+                        "\"UNCHECKED_CAST\", \"JoinDeclarationAndAssignment\", \"USELESS_CAST\", \"RemoveRedundantQualifierName\", " +
+                "\"NOTHING_TO_INLINE\"")
                 .build()
         )
     }
