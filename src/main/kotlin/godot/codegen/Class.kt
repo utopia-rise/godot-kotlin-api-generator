@@ -72,7 +72,7 @@ class Class @JsonCreator constructor(
                         appendln()
                     }
                     appendln(classDoc.description)
-                }
+                }.replace(System.lineSeparator(), "\n")
             )
         }
 
