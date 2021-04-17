@@ -41,7 +41,7 @@ fun Graph<Class>.getMethodFromAncestor(cl: Class, method: Method): Pair<Class, M
         return false
     }
 
-    fun Graph.Node<Class>.findMethodInHierarchy(): Pair<Class, Method>? {
+    tailrec fun Graph.Node<Class>.findMethodInHierarchy(): Pair<Class, Method>? {
         value.methods.forEach {
             if (check(it)) return value to it
         }
@@ -63,13 +63,13 @@ fun Graph<Class>.doAncestorsHaveMethod(cl: Class, method: Method): Boolean {
 fun Graph<Class>.doAncestorsHaveProperty(cl: Class, prop: Property): Boolean {
     if (cl.baseClass == "") return false
 
-    fun Graph.Node<Class>.findPropertyInHierarchy(): Boolean {
+    tailrec fun Graph.Node<Class>.findPropertyInHierarchy(): Boolean? {
         value.properties.forEach {
             if (it.newName == prop.newName) return true
         }
-        return parent?.findPropertyInHierarchy() ?: false
+        return parent?.findPropertyInHierarchy()
     }
-    return nodes.find { it.value.newName == cl.newName }!!.parent!!.findPropertyInHierarchy()
+    return nodes.find { it.value.newName == cl.newName }!!.parent!!.findPropertyInHierarchy() ?: false
 }
 
 fun Graph<Class>.getSanitisedArgumentName(method: Method, index: Int, cl: Class): String {
