@@ -553,6 +553,7 @@ class Class @JsonCreator constructor(
                                 )
                             ).build()
                         )
+                        .addAnnotation(ClassName("godot.annotation", "CoreTypeHelper"))
                         .returns(parameterTypeName)
                         .addStatement(
                             """return $parameterName.apply{
